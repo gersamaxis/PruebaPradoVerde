@@ -1,0 +1,34 @@
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const path = require("path");
+
+const authRoutes = require("./routes/authRoutes");
+const { requireAuth } = require("./middleware/authMiddleware");
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// Servir el archivo HTML principal en la raíz
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "../../../prado-verde-preview.html"));
+});
+
+app.get("/api/health", (req, res) => res.json({ ok: true, service: "prado-verde-backend" }));
+
+app.use("/api/auth", authRoutes);
+
+// Ejemplos de rutas protegidas (a completar con la lógica real de apartamentos, etc.)
+app.get("/api/admin/ping", requireAuth("admin"), (req, res) => {
+  res.json({ ok: true, mensaje: `Hola ${req.user.usuario}, sesión administrativa válida.` });
+});
+
+app.get("/api/resident/ping", requireAuth("residente"), (req, res) => {
+  res.json({ ok: true, mensaje: `Sesión válida para el apartamento ${req.user.identificador}.` });
+});
+
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => {
+  console.log(`✅ Backend de login de Prado Verde escuchando en http://localhost:${PORT}`);
+});
