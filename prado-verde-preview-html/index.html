@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Prado Verde · Gestión del Riesgo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap');
+  :root{
+    
+    --forest:#1B4332; --leaf:#2D6A4F; --mint:#74C69D; --pale:#F1FAF5; --white:#FFFFFF;
+    --amber:#E8A33D; --amber-bg:#FDF1DF; --amber-bd:#F3D9A6; --amber-tx:#8A5A17;
+    --coral:#E0574C; --coral-bg:#FBE7E5; --coral-bd:#F3BDB6; --coral-tx:#9B2C22;
+    --leaf-bg:#E6F4EC; --leaf-bd:#BEE3CC;
+    --ink:#33473C; --ink-bg:#EEF3F0; --ink-bd:#D8E3DC;
+    --border:#DCEEE2; --border2:#E4EFE8; --border3:#CFE6D8;
+    --muted:#5B7A6A; --muted2:#7C9789; --muted3:#8AA598; --muted4:#9BBFAA;
+
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Inter',sans-serif;background:var(--pale);color:var(--ink);}
+  .font-display{font-family:'Baloo 2','Inter',sans-serif;}
+  .font-mono{font-family:'JetBrains Mono',monospace;}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;padding:0;color:inherit;}
+  input,select,textarea{font-family:inherit;font-size:14px;}
+  .screen{min-height:100vh;background:var(--pale);}
+  .wrap{max-width:420px;margin:0 auto;padding:0 20px;}
+  .flex{display:flex;} .items-center{align-items:center;} .items-start{align-items:flex-start;}
+  .justify-between{justify-content:space-between;} .justify-center{justify-content:center;}
+  .flex-col{flex-direction:column;} .flex-1{flex:1;min-width:0;} .flex-wrap{flex-wrap:wrap;}
+  .gap-1{gap:4px;} .gap-2{gap:8px;} .gap-3{gap:12px;} .gap-4{gap:16px;}
+  .g2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+  .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .g4{display:grid;grid-template-columns:repeat(4,1fr);}
+  .icon{display:inline-block;vertical-align:middle;flex-shrink:0;}
+  .badge{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid;}
+  .badge-leaf{background:var(--leaf-bg);color:var(--forest);border-color:var(--leaf-bd);}
+  .badge-amber{background:var(--amber-bg);color:var(--amber-tx);border-color:var(--amber-bd);}
+  .badge-coral{background:var(--coral-bg);color:var(--coral-tx);border-color:var(--coral-bd);}
+  .badge-ink{background:var(--ink-bg);color:var(--ink);border-color:var(--ink-bd);}
+  .icon-tile{width:40px;height:40px;border-radius:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;}
+  .icon-tile.leaf{background:var(--leaf);} .icon-tile.amber{background:var(--amber);} .icon-tile.coral{background:var(--coral);}
+  .icon-tile.pale{background:#DDF0E4;color:var(--forest);}
+  .card{background:#fff;border:1px solid var(--border2);border-radius:20px;padding:16px;}
+  .card-lg{background:#fff;border:1px solid var(--border);border-radius:24px;padding:20px;}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;border-radius:14px;padding:13px;font-size:14px;font-weight:600;width:100%;}
+  .btn-dark{background:var(--forest);color:#fff;}
+  .btn-leaf{background:var(--leaf);color:#fff;border-radius:14px;padding:0 12px;height:38px;}
+  .btn-text{color:var(--leaf);font-size:13px;font-weight:500;}
+  .input,.select,textarea.input{width:100%;border:1px solid var(--border3);background:#fff;border-radius:14px;padding:10px 14px;font-size:14px;outline:none;}
+  .input:focus,.select:focus,textarea:focus{border-color:var(--leaf);}
+  .label{font-size:11px;font-weight:700;color:var(--ink);display:block;margin-bottom:4px;}
+  .divider{display:flex;align-items:center;gap:8px;margin:16px 0;opacity:.6;}
+  .divider .line{height:1px;flex:1;background:var(--border3);}
+  .err{font-size:12px;color:#C0392B;font-weight:600;}
+  .link-back{display:flex;align-items:center;gap:4px;color:var(--leaf);font-size:14px;font-weight:500;margin-bottom:24px;}
+  .section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:4px;}
+  .row-item{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border2);border-radius:14px;padding:8px 12px;margin-bottom:6px;}
+  .toggle-btn{display:flex;align-items:center;gap:8px;border-radius:14px;border:1px solid var(--border3);background:#fff;color:var(--ink);padding:10px 12px;font-size:12px;font-weight:600;text-align:left;}
+  .toggle-btn.active{background:var(--leaf);color:#fff;border-color:var(--leaf);}
+  .tabs{display:flex;gap:8px;overflow-x:auto;padding:16px 20px 0;scrollbar-width:none;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;border:1px solid var(--border);background:#fff;color:var(--muted);}
+  .tab-btn.active{background:var(--forest);color:#fff;border-color:var(--forest);}
+  .stat-bar{background:#fff;border-radius:18px;box-shadow:0 1px 2px rgba(0,0,0,.05);border:1px solid var(--border2);}
+  .stat{text-align:center;padding:12px;border-right:1px solid #EEF3F0;}
+  .stat:last-child{border-right:none;}
+  .stat .val{font-size:18px;font-weight:700;color:var(--forest);}
+  .stat .val.coral{color:var(--coral);} .stat .val.amber{color:#C98A26;}
+  .stat .lbl{font-size:10px;color:var(--muted2);font-weight:600;}
+  .header-dark{background:var(--forest);padding:32px 20px 20px;border-radius:0 0 24px 24px;}
+  .apt-cell{flex:1;height:12px;border-radius:3px;border:none;padding:0;}
+  .tower-box{background:#fff;border:1px solid var(--border2);border-radius:18px;padding:10px;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50;display:flex;align-items:flex-end;justify-content:center;}
+  .modal{background:#F8FBF9;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;border-radius:24px 24px 0 0;}
+  .modal-header{position:sticky;top:0;background:var(--forest);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:between;border-radius:24px 24px 0 0;}
+  @media(min-width:640px){ .modal-overlay{align-items:center;} .modal{border-radius:24px;} }
+  .norm-box{background:var(--forest);border-radius:18px;padding:16px;color:#DCEFE3;}
+  @media(min-width:480px){ .wrap{max-width:460px;} }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+/* ---------------------------------------------------------------
+   PRADO VERDE · Gestión Integral del Riesgo de Desastres
+   2 torres · 18 pisos · 6 aptos por piso · 216 unidades
+   Versión JS puro (sin frameworks externos) para previsualización
+--------------------------------------------------------------- */
+
+const TORRES = [1, 2];
+const PISOS = Array.from({ length: 18 }, (_, i) => i + 1);
+const APTOS_POR_PISO = ["01", "02", "03", "04", "05", "06"];
+
+function aptoId(torre, piso, apto) { return `T${torre}-${String(piso).padStart(2, "0")}${apto}`; }
+
+// Numeración real de apartamentos
+// Torre 1: Piso 1 = 107-112, Piso 2 = 207-212, etc.
+// Torre 2: Piso 1 = 13-18, Piso 2 = 23-28, etc.
+function getAptNumero(torre, piso, aptoIndex) {
+  // aptoIndex es 0-5 (convertir desde "01"-"06")
+  const idx = typeof aptoIndex === 'string' ? parseInt(aptoIndex, 10) - 1 : aptoIndex;
+  if (torre === 1) {
+    return String((piso * 100) + 7 + idx);
+  } else {
+    return String((piso * 10) + 3 + idx);
+  }
+}
+
+function seedApartments() {
+  const out = {};
+  TORRES.forEach((torre) => {
+    PISOS.forEach((piso) => {
+      APTOS_POR_PISO.forEach((apto) => {
+        const id = aptoId(torre, piso, apto);
+        out[id] = {
+          id, torre, piso, numero: getAptNumero(torre, piso, apto),
+          telefonoPrincipal: "",
+          residentes: [],
+          mascotas: [],
+          caracterizacion: { adultosMayores: false, ninos: false, movilidadReducida: false, dificultadNeurologica: false, otras: "" },
+          alarmaPrioridad: false,
+          notaAdmin: "",
+        };
+      });
+    });
+  });
+  return out;
+}
+
+function genOtp() { return String(Math.floor(100000 + Math.random() * 900000)); }
+function maskPhone(phone) { if (!phone || phone.length < 4) return "••••••"; return "••• ••• " + phone.slice(-4); }
+function esc(s) { return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+/* ---------------------------- Almacenamiento persistente ---------------------------- */
+
+async function loadApartments() {
+  try {
+    const res = await window.storage.get("pv2:apartments", true);
+    if (res && res.value) return JSON.parse(res.value);
+  } catch (e) {}
+  const seeded = seedApartments();
+  try { await window.storage.set("pv2:apartments", JSON.stringify(seeded), true); } catch (e) {}
+  return seeded;
+}
+async function saveApartments(data) { try { await window.storage.set("pv2:apartments", JSON.stringify(data), true); } catch (e) { console.error(e); } }
+async function loadBrigada() {
+  try { const res = await window.storage.get("pv2:brigada", true); if (res && res.value) return JSON.parse(res.value); } catch (e) {}
+  return [];
+}
+async function saveBrigada(list) { try { await window.storage.set("pv2:brigada", JSON.stringify(list), true); } catch (e) {} }
+async function loadSimulacros() {
+  try { const res = await window.storage.get("pv2:simulacros", true); if (res && res.value) return JSON.parse(res.value); } catch (e) {}
+  return [];
+}
+async function saveSimulacros(list) { try { await window.storage.set("pv2:simulacros", JSON.stringify(list), true); } catch (e) {} }
+
+/* ---------------------------- Íconos SVG propios ---------------------------- */
+
+const ICONS = {
+  x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  plus: '<path d="M12 5v14"/><path d="M5 12h14"/>',
+  search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  trash: '<path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>',
+  lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  key: '<circle cx="8" cy="15" r="4"/><path d="m10.5 12.5 8-8"/><path d="m17 6 2 2"/><path d="m14 9 2 2"/>',
+  chevronleft: '<path d="m15 18-6-6 6-6"/>',
+  chevronright: '<path d="m9 18 6-6-6-6"/>',
+  alerttriangle: '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>',
+  messagesquare: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>',
+  save: '<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/>',
+  filetext: '<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>',
+  mappin: '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+  radio: '<circle cx="12" cy="12" r="2"/><path d="M4.93 19.07a10 10 0 0 1 0-14.14"/><path d="M7.76 16.24a6 6 0 0 1 0-8.48"/><path d="M16.24 7.76a6 6 0 0 1 0 8.48"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>',
+  bookopen: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+  building2: '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18"/><path d="M2 22h20"/><path d="M9 6h1"/><path d="M14 6h1"/><path d="M9 10h1"/><path d="M14 10h1"/><path d="M9 14h1"/><path d="M14 14h1"/>',
+  pawprint: '<circle cx="11" cy="4.5" r="2"/><circle cx="17.5" cy="8.5" r="2"/><circle cx="4.5" cy="9.5" r="2"/><path d="M9 15.5c0-2 1.8-3.5 4-3.5s4 1.9 4 4c0 1.9-1.4 3-3 3-.7 0-1.4-.2-2-.6-.6.4-1.3.6-2 .6-1.6 0-3-1-3-2.8 0-.2 0-.5.1-.7Z"/>',
+  shieldalert: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
+  siren: '<path d="M7 18v-6a5 5 0 0 1 10 0v6"/><path d="M5 21h14"/><path d="M21 12h1"/><path d="M2 12h1"/><path d="M12 2v1"/>',
+  flame: '<path d="M8.5 14.5c0 1.4 1.1 2.5 2.5 2.5s2.5-1.1 2.5-2.5c0-1.4-1-2-1-3.5 0-1 .5-2 .5-2s2 1.7 2 4.7A5.5 5.5 0 0 1 9.5 21 5.5 5.5 0 0 1 4 15.5c0-3 2-5 3-8 .3 1 .5 2 .5 3 0 1.5-1 2.5 1 4Z"/>',
+  waves: '<path d="M2 6c1.5-1 3-1 4.5 0s3 1 4.5 0 3-1 4.5 0 3 1 4.5 0"/><path d="M2 12c1.5-1 3-1 4.5 0s3 1 4.5 0 3-1 4.5 0 3 1 4.5 0"/><path d="M2 18c1.5-1 3-1 4.5 0s3 1 4.5 0 3-1 4.5 0 3 1 4.5 0"/>',
+  mountain: '<path d="m8 21 4-11 4 11"/><path d="M2 21h20"/><path d="m9 12-3-7-3 7"/>',
+  activity: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  clipboardlist: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 3h6v2H9z"/><path d="M8 11h8"/><path d="M8 15h8"/><path d="M8 7h4"/>',
+  userplus: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/>',
+  heartpulse: '<path d="M20.4 4.6a5 5 0 0 0-7.1 0L12 5.9l-1.3-1.3a5 5 0 1 0-7.1 7.1L4 12l8 8 8-8a5 5 0 0 0 .4-6.4Z"/><path d="M3.5 12H7l1.5-3 2 5 1.5-3h4.5"/>',
+  baby: '<circle cx="12" cy="6" r="3"/><path d="M15 13a3 3 0 1 1-6 0"/><path d="M12 9v1"/><path d="M6 20c0-3 2-6 6-6s6 3 6 6"/>',
+  accessibility: '<circle cx="12" cy="4" r="1.5"/><path d="M5 9h14"/><path d="M12 9v5"/><path d="m8 20 4-6 4 6"/><path d="M8 13l-2 2"/><path d="M16 13l2 2"/>',
+  brain: '<path d="M9.5 2a3.5 3.5 0 0 0-3.5 3.5V6a3 3 0 0 0-2 5 3 3 0 0 0 1 5.5 3 3 0 0 0 3 3 3.5 3.5 0 0 0 3.5-3.5V5.5A3.5 3.5 0 0 0 9.5 2Z"/><path d="M14.5 2A3.5 3.5 0 0 1 18 5.5V6a3 3 0 0 1 2 5 3 3 0 0 1-1 5.5 3 3 0 0 1-3 3 3.5 3.5 0 0 1-3.5-3.5V5.5A3.5 3.5 0 0 1 14.5 2Z"/>',
+  eye: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+  eyeoff: '<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/>',
+  layers: '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+  home: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+  check: '<polyline points="20 6 9 17 4 12"/>',
+};
+function icon(name, size, cls) {
+  size = size || 18; cls = cls || "";
+  return `<svg class="icon ${cls}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[name] || '<circle cx="12" cy="12" r="9"/>'}</svg>`;
+}
+
+function badge(tone, text, iconName) {
+  return `<span class="badge badge-${tone}">${iconName ? icon(iconName, 11) : ""}${esc(text)}</span>`;
+}
+function iconTile(name, tone) { return `<div class="icon-tile ${tone}">${icon(name, 19)}</div>`; }
+
+////
+/* ---------------------------- Estado global ---------------------------- */
+
+/* ---------------------------------------------------------------
+   Conexión al backend real de login (prado-verde-backend)
+   Si el backend no está disponible (o esta página se abre sin
+   conexión a él), la app cae automáticamente al modo demo local
+   para que la previsualización siga funcionando.
+--------------------------------------------------------------- */
+const API_BASE_URL = "https://round-better-students-icons.trycloudflare.com/api";
+
+async function apiPost(path, body) {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  let data = {};
+  try { data = await res.json(); } catch (e) {}
+  return { status: res.status, ok: res.ok, data };
+}
+
+const S = {
+  view: "landing",
+  apartments: null, brigada: [], simulacros: [], loading: true,
+
+  formAdmin: { user: "", pass: "" }, adminErr: "", showPass: false,
+  adminToken: null, backendModo: null, // null = aún no se sabe, true/false una vez se intenta conectar
+
+  residentStep: 1, residentTorre: 1, residentPiso: 1, residentApto: "01",
+  residentOtp: null, residentOtpInput: "", residentDemoBanner: "", residentErr: "",
+  residentAptId: null, residentToken: null,
+
+  adminTab: "resumen", adminQuery: "",
+  selectorTorre: null, selectorPiso: null,
+  newBrig: { nombre: "", rol: "Primeros auxilios", cantidad: 1 },
+  newSim: { fecha: "", tema: "Evacuación general" },
+
+  modalAptId: null, modalIsAdmin: false, modalData: null,
+  newRes: { nombre: "", documento: "" }, newPet: { nombre: "", tipo: "Canino", cantidad: 1 },
+};
+
+function setDeep(obj, path, value) {
+  const parts = path.split(".");
+  let cur = obj;
+  for (let i = 0; i < parts.length - 1; i++) cur = cur[parts[i]];
+  cur[parts[parts.length - 1]] = value;
+}
+function getDeep(obj, path) {
+  return path.split(".").reduce((c, k) => (c == null ? c : c[k]), obj);
+}
+
+/* ---------------------------- Vistas ---------------------------- */
+
+function viewLanding() {
+  return `
+  <div class="screen"><div class="wrap" style="padding-top:40px;padding-bottom:40px;">
+    <div style="text-align:center;">
+      <div style="width:64px;height:64px;margin:0 auto 16px;border-radius:24px;background:var(--forest);display:flex;align-items:center;justify-content:center;transform:rotate(3deg);">${icon("building2", 30, "")}</div>
+      <h1 class="font-display" style="font-size:30px;color:var(--forest);margin:0;">Prado Verde</h1>
+      <p style="color:var(--muted);font-size:14px;margin:4px 0 0;">Plan de Gestión del Riesgo y Emergencias</p>
+      <div class="flex justify-center gap-2" style="margin-top:12px;flex-wrap:wrap;">
+        ${badge("leaf", "2 torres · 18 pisos", "building2")}
+        ${badge("leaf", "Pet friendly", "pawprint")}
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-3" style="margin-top:28px;">
+      <button data-action="goto" data-view="admin-login" class="card" style="text-align:left;">
+        <div class="flex items-start gap-3">
+          ${iconTile("shieldalert", "leaf")}
+          <div class="flex-1">
+            <h2 class="font-display" style="font-size:17px;color:var(--forest);margin:0;">Módulo administrativo</h2>
+            <p style="font-size:13px;color:var(--muted);margin:2px 0 0;">Administración, consejo y brigada. Ingreso con usuario y contraseña.</p>
+          </div>
+          <span style="color:var(--muted4);margin-top:2px;">${icon("chevronright", 18)}</span>
+        </div>
+      </button>
+
+      <button data-action="goto" data-view="resident-login" class="card" style="text-align:left;">
+        <div class="flex items-start gap-3">
+          ${iconTile("users", "pale")}
+          <div class="flex-1">
+            <h2 class="font-display" style="font-size:17px;color:var(--forest);margin:0;">Módulo residentes</h2>
+            <p style="font-size:13px;color:var(--muted);margin:2px 0 0;">Ingreso con código enviado por SMS al residente principal del apartamento.</p>
+          </div>
+          <span style="color:var(--muted4);margin-top:2px;">${icon("chevronright", 18)}</span>
+        </div>
+      </button>
+
+      <div class="divider"><div class="line"></div>${icon("pawprint", 14)}<div class="line"></div></div>
+
+      <div class="norm-box">
+        <div class="flex items-center gap-2" style="margin-bottom:8px;">
+          ${icon("bookopen", 16)}
+          <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--mint);">Marco normativo</span>
+        </div>
+        <p style="font-size:13px;line-height:1.5;margin:0;">
+          Ley 1523 de 2012 (Sistema Nacional de Gestión del Riesgo), Marco de Sendai, y a nivel departamental
+          la Estrategia Departamental de Respuesta a Emergencias — EDRE del DAGRAN Antioquia
+          (Decreto EDRE, Decreto 2049 y Decreto 3979).
+        </p>
+      </div>
+    </div>
+  </div></div>`;
+}
+
+function viewAdminLogin() {
+  return `
+  <div class="screen"><div class="wrap" style="padding-top:32px;">
+    <button data-action="goto" data-view="landing" class="link-back">${icon("chevronleft", 16)} Volver</button>
+    <div style="max-width:340px;margin:0 auto;">
+      <div style="width:48px;height:48px;border-radius:18px;background:var(--leaf);display:flex;align-items:center;justify-content:center;margin-bottom:16px;color:#fff;">${icon("lock", 20)}</div>
+      <h1 class="font-display" style="font-size:24px;color:var(--forest);margin:0;">Ingreso administrativo</h1>
+      <p style="font-size:14px;color:var(--muted);margin:4px 0 24px;">Administración, consejo y brigada de emergencia.</p>
+
+      <form data-action="admin-login-submit">
+        <div style="margin-bottom:12px;">
+          <label class="label">Usuario</label>
+          <input class="input" data-bind="formAdmin.user" value="${esc(S.formAdmin.user)}" placeholder="admin" autocomplete="username" />
+        </div>
+        <div style="margin-bottom:12px;">
+          <label class="label">Contraseña</label>
+          <div style="position:relative;">
+            <input class="input" type="${S.showPass ? 'text' : 'password'}" data-bind="formAdmin.pass" value="${esc(S.formAdmin.pass)}" placeholder="••••••••" autocomplete="current-password" style="padding-right:44px;" />
+            <button type="button" data-action="toggle-pass" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted3);padding:6px;">${icon(S.showPass ? 'eyeoff' : 'eye', 18)}</button>
+          </div>
+        </div>
+        ${S.adminErr ? `<p class="err" style="margin:0 0 8px;">${esc(S.adminErr)}</p>` : ""}
+        <button type="submit" class="btn btn-dark" style="margin-top:4px;">Ingresar</button>
+      </form>
+
+      ${S.backendModo === false ? `
+      <div style="background:var(--amber-bg);border:1px solid var(--amber-bd);color:var(--amber-tx);font-size:12px;border-radius:14px;padding:10px 12px;margin-top:14px;line-height:1.5;">
+        ${icon("alerttriangle", 13)} Backend no disponible en <span class="font-mono">${API_BASE_URL}</span> — usando modo demo local.
+        Usuario <span class="font-mono">admin</span> · contraseña <span class="font-mono">Login exito2026</span>.
+      </div>` : ""}
+      ${S.backendModo === true ? `<div class="flex items-center gap-1" style="margin-top:14px;"><span style="color:var(--leaf);">●</span><p style="font-size:12px;color:var(--muted);margin:0;">Conectado al backend de login (${API_BASE_URL})</p></div>` : ""}
+    </div>
+  </div></div>`;
+}
+
+function viewResidentLogin() {
+  const id = aptoId(S.residentTorre, S.residentPiso, S.residentApto);
+  const record = S.apartments[id];
+  let body = "";
+  if (S.residentStep === 1) {
+    body = `
+      <p style="font-size:14px;color:var(--muted);margin:4px 0 20px;">Selecciona tu apartamento para recibir un código de acceso.</p>
+      <div class="g3">
+        <div>
+          <label class="label">Torre</label>
+          <select class="select" data-bind="residentTorre" data-rerender="1">
+            ${TORRES.map((t) => `<option value="${t}" ${t === S.residentTorre ? "selected" : ""}>Torre ${t}</option>`).join("")}
+          </select>
+        </div>
+        <div>
+          <label class="label">Piso</label>
+          <select class="select" data-bind="residentPiso" data-rerender="1">
+            ${PISOS.map((p) => `<option value="${p}" ${p === S.residentPiso ? "selected" : ""}>${p}</option>`).join("")}
+          </select>
+        </div>
+        <div>
+          <label class="label">Apto</label>
+          <select class="select" data-bind="residentApto" data-rerender="1">
+            ${APTOS_POR_PISO.map((a) => `<option value="${a}" ${a === S.residentApto ? "selected" : ""}>${getAptNumero(S.residentTorre, S.residentPiso, a)}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+      ${S.residentErr ? `<p class="err" style="margin-top:12px;">${esc(S.residentErr)}</p>` : ""}
+      <button data-action="resident-request-code" class="btn btn-dark" style="margin-top:20px;">${icon("messagesquare", 16)} Enviar código por SMS</button>
+      ${S.backendModo === false ? `<div style="background:var(--amber-bg);border:1px solid var(--amber-bd);color:var(--amber-tx);font-size:12px;border-radius:14px;padding:10px 12px;margin-top:14px;line-height:1.5;">${icon("alerttriangle", 13)} Backend no disponible en <span class="font-mono">${API_BASE_URL}</span> — usando modo demo local (el código se muestra en pantalla).</div>` : ""}
+      ${S.backendModo === true ? `<div class="flex items-center gap-1" style="margin-top:14px;"><span style="color:var(--leaf);">●</span><p style="font-size:12px;color:var(--muted);margin:0;">Conectado al backend de login</p></div>` : ""}
+    `;
+  } else {
+    body = `
+      <p style="font-size:14px;color:var(--muted);margin:4px 0 16px;">Apto ${esc(record.numero)} · Torre ${S.residentTorre}</p>
+      <div style="background:#FDF6E3;border:1px solid #F0DFA4;color:#7A5C0B;font-size:12px;border-radius:14px;padding:12px;margin-bottom:16px;line-height:1.5;">${esc(S.residentDemoBanner)}</div>
+      <form data-action="resident-verify">
+        <label class="label">Código de 6 dígitos</label>
+        <input class="input font-mono" data-bind="residentOtpInput" value="${esc(S.residentOtpInput)}" inputmode="numeric" maxlength="6" placeholder="000000" style="letter-spacing:.4em;" />
+        ${S.residentErr ? `<p class="err" style="margin:8px 0 0;">${esc(S.residentErr)}</p>` : ""}
+        <button type="submit" class="btn btn-dark" style="margin-top:12px;">Verificar e ingresar</button>
+        <button type="button" data-action="resident-change-apt" class="btn-text" style="width:100%;text-align:center;padding:6px 0;margin-top:4px;">Cambiar de apartamento</button>
+      </form>
+    `;
+  }
+  return `
+  <div class="screen"><div class="wrap" style="padding-top:32px;">
+    <button data-action="goto" data-view="landing" class="link-back" style="margin-bottom:24px;">${icon("chevronleft", 16)} Volver</button>
+    <div style="max-width:340px;margin:0 auto;">
+      <div style="width:48px;height:48px;border-radius:18px;background:var(--mint);display:flex;align-items:center;justify-content:center;margin-bottom:16px;color:var(--forest);">${icon("key", 20)}</div>
+      <h1 class="font-display" style="font-size:24px;color:var(--forest);margin:0;">Ingreso residentes</h1>
+      ${body}
+    </div>
+  </div></div>`;
+}
+
+function statusColor(apt) {
+  if (apt.alarmaPrioridad) return "#E0574C";
+  const c = apt.caracterizacion;
+  if (c.adultosMayores || c.ninos || c.movilidadReducida || c.dificultadNeurologica) return "#E8A33D";
+  if (apt.residentes.length > 0) return "#40916C";
+  return "#DCE9E1";
+}
+
+function buildingMap() {
+  // Sistema de selector en cascada: Torre → Piso → Apartamento
+  let html = `<div style="display:flex;flex-direction:column;gap:12px;">`;
+  
+  // Selector de Torres
+  html += `<div class="g2">`;
+  TORRES.forEach((torre) => {
+    const isSelected = S.selectorTorre === torre;
+    const torreAptos = Object.values(S.apartments).filter(a => a.torre === torre);
+    const registrados = torreAptos.filter(a => a.residentes.length > 0).length;
+    html += `
+      <button data-action="select-torre" data-torre="${torre}" class="card" style="text-align:center;cursor:pointer;border:2px solid ${isSelected ? 'var(--leaf)' : 'var(--border2)'};${isSelected ? 'background:var(--leaf-bg);' : ''}">
+        <div style="width:48px;height:48px;margin:0 auto 8px;border-radius:16px;background:${isSelected ? 'var(--leaf)' : 'var(--forest)'};display:flex;align-items:center;justify-content:center;">
+          ${icon("building2", 24, "")}
+        </div>
+        <p style="font-size:16px;font-weight:700;color:var(--forest);margin:0;">Torre ${torre}</p>
+        <p style="font-size:12px;color:var(--muted);margin:4px 0 0;">${registrados}/108 registrados</p>
+      </button>`;
+  });
+  html += `</div>`;
+  
+  
+  // Si hay torre seleccionada, mostrar selector de pisos
+  if (S.selectorTorre) {
+    html += `
+      <div class="card" style="padding:12px;">
+        <div class="flex items-center justify-between" style="margin-bottom:12px;">
+          <p style="font-size:14px;font-weight:700;color:var(--forest);margin:0;">${icon("layers", 16)} Selecciona el piso - Torre ${S.selectorTorre}</p>
+          <button data-action="clear-torre" class="btn-text" style="font-size:12px;">Cambiar torre</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;">`;
+    
+    PISOS.forEach((piso) => {
+      const isSelected = S.selectorPiso === piso;
+      const pisoAptos = APTOS_POR_PISO.map(apto => S.apartments[aptoId(S.selectorTorre, piso, apto)]);
+      const registrados = pisoAptos.filter(a => a.residentes.length > 0).length;
+      const hasVulnerable = pisoAptos.some(a => a.caracterizacion.adultosMayores || a.caracterizacion.ninos || a.caracterizacion.movilidadReducida || a.caracterizacion.dificultadNeurologica);
+      const hasPrioridad = pisoAptos.some(a => a.alarmaPrioridad);
+      let bgColor = '#fff';
+      let borderColor = 'var(--border3)';
+      if (isSelected) { bgColor = 'var(--leaf)'; borderColor = 'var(--leaf)'; }
+      else if (hasPrioridad) { bgColor = 'var(--coral-bg)'; borderColor = 'var(--coral)'; }
+      else if (hasVulnerable) { bgColor = 'var(--amber-bg)'; borderColor = 'var(--amber)'; }
+      else if (registrados > 0) { bgColor = 'var(--leaf-bg)'; borderColor = 'var(--leaf-bd)'; }
+      
+      html += `
+        <button data-action="select-piso" data-piso="${piso}" style="padding:10px 4px;border-radius:10px;border:1.5px solid ${borderColor};background:${bgColor};cursor:pointer;text-align:center;">
+          <p style="font-size:14px;font-weight:700;color:${isSelected ? '#fff' : 'var(--forest)'};margin:0;">Piso ${piso}</p>
+          <p style="font-size:10px;color:${isSelected ? '#fff' : 'var(--muted)'};margin:2px 0 0;">${registrados}/6</p>
+        </button>`;
+    });
+    html += `</div></div>`;
+  }
+  
+  // Si hay piso seleccionado, mostrar apartamentos
+  if (S.selectorTorre && S.selectorPiso) {
+    html += `
+      <div class="card" style="padding:12px;">
+        <div class="flex items-center justify-between" style="margin-bottom:12px;">
+          <p style="font-size:14px;font-weight:700;color:var(--forest);margin:0;">${icon("home", 16)} Apartamentos - Piso ${S.selectorPiso}</p>
+          <button data-action="clear-piso" class="btn-text" style="font-size:12px;">Cambiar piso</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">`;
+    
+    APTOS_POR_PISO.forEach((apto) => {
+      const id = aptoId(S.selectorTorre, S.selectorPiso, apto);
+      const apt = S.apartments[id];
+      const hasData = apt.residentes.length > 0;
+      const isVulnerable = apt.caracterizacion.adultosMayores || apt.caracterizacion.ninos || apt.caracterizacion.movilidadReducida || apt.caracterizacion.dificultadNeurologica;
+      const totalMascotas = apt.mascotas.reduce((sum, m) => sum + (m.cantidad || 1), 0);
+      
+      let statusBg = '#fff';
+      let statusBorder = 'var(--border3)';
+      let statusIcon = 'home';
+      if (apt.alarmaPrioridad) { statusBg = 'var(--coral-bg)'; statusBorder = 'var(--coral)'; statusIcon = 'siren'; }
+      else if (isVulnerable) { statusBg = 'var(--amber-bg)'; statusBorder = 'var(--amber)'; statusIcon = 'heartpulse'; }
+      else if (hasData) { statusBg = 'var(--leaf-bg)'; statusBorder = 'var(--leaf-bd)'; statusIcon = 'check'; }
+      
+      html += `
+        <button data-action="open-apt" data-id="${id}" data-isadmin="1" class="card" style="padding:12px;cursor:pointer;border:1.5px solid ${statusBorder};background:${statusBg};text-align:left;">
+          <div class="flex items-center gap-2" style="margin-bottom:6px;">
+            <div style="width:32px;height:32px;border-radius:10px;background:${statusColor(apt)};display:flex;align-items:center;justify-content:center;">
+              ${icon(statusIcon, 16, "")}
+            </div>
+            <div>
+              <p style="font-size:15px;font-weight:700;color:var(--forest);margin:0;">Apto ${apt.numero}</p>
+              <p style="font-size:10px;color:var(--muted);margin:0;">${id}</p>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--muted);">
+            ${hasData ? `<span style="color:var(--leaf);">${icon("users", 11)} ${apt.residentes.length}</span>` : '<span>Sin datos</span>'}
+            ${totalMascotas > 0 ? ` · ${icon("pawprint", 11)} ${totalMascotas}` : ''}
+          </div>
+        </button>`;
+    });
+    html += `</div></div>`;
+  }
+  
+  html += `</div>`;
+  return html;
+}
+
+const AMENAZAS = [
+  { icon: "flame", label: "Incendio / conflagración", tipo: "Interna" },
+  { icon: "activity", label: "Falla estructural", tipo: "Interna" },
+  { icon: "alerttriangle", label: "Fuga de gas", tipo: "Interna" },
+  { icon: "waves", label: "Inundación / avenida torrencial", tipo: "Externa" },
+  { icon: "activity", label: "Sismo", tipo: "Externa" },
+  { icon: "mountain", label: "Deslizamiento", tipo: "Externa" },
+];
+
+function adminStats() {
+  const list = Object.values(S.apartments);
+  return {
+    total: list.length,
+    registrados: list.filter((a) => a.residentes.length > 0).length,
+    prioridad: list.filter((a) => a.alarmaPrioridad).length,
+    mascotas: list.reduce((n, a) => n + a.mascotas.reduce((sum, m) => sum + (m.cantidad || 1), 0), 0),
+  };
+}
+
+function aptSearchResultsHTML() {
+  const q = S.adminQuery.trim().toLowerCase();
+  if (!q) return `<p style="font-size:14px;color:var(--muted2);text-align:center;padding:24px 0;">Escribe para buscar un apartamento, o usa el mapa de torres en Resumen.</p>`;
+  const list = Object.values(S.apartments).filter((a) =>
+    a.id.toLowerCase().includes(q) || a.numero.includes(q) ||
+    a.residentes.some((r) => r.nombre.toLowerCase().includes(q) || r.documento.includes(q))
+  ).slice(0, 20);
+  if (list.length === 0) return `<p style="font-size:14px;color:var(--muted2);text-align:center;padding:24px 0;">Sin resultados.</p>`;
+  return list.map((a) => `
+    <button class="row-item" data-action="open-apt" data-id="${a.id}" data-isadmin="1" style="width:100%;text-align:left;">
+      <div style="width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;background:${statusColor(a)};">${a.numero}</div>
+      <div class="flex-1">
+        <p style="font-size:14px;font-weight:600;color:var(--forest);margin:0;">Torre ${a.torre} · Apto ${a.numero}</p>
+        <p style="font-size:12px;color:var(--muted2);margin:1px 0 0;">${a.residentes.length} residentes · ${a.mascotas.reduce((sum, m) => sum + (m.cantidad || 1), 0)} mascotas</p>
+      </div>
+      ${a.alarmaPrioridad ? badge("coral", "Prioridad", "siren") : ""}
+    </button>`).join("");
+}
+
+function viewAdminDashboard() {
+  const stats = adminStats();
+  const tabs = [
+    ["resumen", "Resumen", "building2"], ["aptos", "Apartamentos", "users"], ["riesgos", "Riesgos", "shieldalert"],
+    ["brigada", "Brigada", "radio"], ["simulacros", "Simulacros", "clipboardlist"], ["norma", "Normativa", "filetext"],
+  ];
+
+  let content = "";
+  if (S.adminTab === "resumen") {
+    content = `
+      <div>
+        <h2 class="font-display" style="font-size:16px;color:var(--forest);margin:0 0 12px;">${icon("building2", 18)} Seleccionar apartamento</h2>
+        ${buildingMap()}
+        <div class="flex flex-wrap gap-3" style="margin-top:16px;padding:12px;background:#fff;border-radius:12px;border:1px solid var(--border2);font-size:11px;color:var(--muted);">
+          <span class="flex items-center gap-1"><span style="width:12px;height:12px;border-radius:3px;background:#DCE9E1;display:inline-block;"></span> Sin datos</span>
+          <span class="flex items-center gap-1"><span style="width:12px;height:12px;border-radius:3px;background:#40916C;display:inline-block;"></span> Registrado</span>
+          <span class="flex items-center gap-1"><span style="width:12px;height:12px;border-radius:3px;background:#E8A33D;display:inline-block;"></span> Vulnerable</span>
+          <span class="flex items-center gap-1"><span style="width:12px;height:12px;border-radius:3px;background:#E0574C;display:inline-block;"></span> Prioridad</span>
+        </div>
+      </div>
+      <div class="card" style="margin-top:20px;">
+        <h3 class="section-title">${icon("mappin", 13)} Punto de encuentro</h3>
+        <p style="font-size:14px;margin:0;">Zona verde central entre Torre 1 y Torre 2, área abierta señalizada, alejada de fachadas y parqueaderos.</p>
+      </div>`;
+  } else if (S.adminTab === "aptos") {
+    content = `
+      <div style="position:relative;">
+        <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted4);">${icon("search", 16)}</span>
+        <input class="input" style="padding-left:38px;" data-bind="adminQuery" data-live="apt-search-results" value="${esc(S.adminQuery)}" placeholder="Buscar por apto, nombre o documento..." />
+      </div>
+      <div id="apt-search-results" style="margin-top:12px;">${aptSearchResultsHTML()}</div>`;
+  } else if (S.adminTab === "riesgos") {
+    content = `
+      <div class="card">
+        <h3 class="section-title" style="margin-bottom:12px;">Identificación de amenazas</h3>
+        <div class="g2">
+          ${AMENAZAS.map((a) => `
+            <div class="flex items-center gap-2" style="border:1px solid var(--border2);border-radius:14px;padding:10px 12px;">
+              ${iconTile(a.icon, a.tipo === "Interna" ? "leaf" : "amber")}
+              <div><p style="font-size:12px;font-weight:600;color:var(--forest);margin:0;">${a.label}</p><p style="font-size:10px;color:var(--muted3);margin:0;">${a.tipo}</p></div>
+            </div>`).join("")}
+        </div>
+      </div>
+      <div class="card" style="margin-top:12px;">
+        <h3 class="section-title">Rutas y puntos seguros</h3>
+        <ul style="font-size:14px;margin:0;padding-left:18px;line-height:1.7;">
+          <li>Escaleras de emergencia de cada torre señalizadas y libres de obstáculos.</li>
+          <li>Pasillos comunes despejados: prohibido almacenamiento temporal.</li>
+          <li>Punto de encuentro: zona verde central (ver pestaña Resumen).</li>
+          <li>Ruta preferente para apartamentos con alarma de prioridad, asistida por brigada.</li>
+        </ul>
+      </div>`;
+  } else if (S.adminTab === "brigada") {
+    const totalBrigada = S.brigada.reduce((sum, b) => sum + (b.cantidad || 1), 0);
+    content = `
+      <div class="card">
+        <h3 class="section-title" style="margin-bottom:12px;">Brigada operativa (${totalBrigada} integrantes)</h3>
+        ${S.brigada.map((b) => `
+          <div class="row-item">
+            ${iconTile("radio", "leaf")}
+            <div class="flex-1"><p style="font-size:14px;font-weight:600;color:var(--forest);margin:0;">${esc(b.rol)}</p></div>
+            <div class="flex items-center gap-1" style="background:var(--pale);border-radius:8px;padding:2px 4px;">
+              <button data-action="brig-qty-dec" data-id="${b.id}" style="width:24px;height:24px;border-radius:6px;background:var(--border3);color:var(--forest);font-weight:700;font-size:14px;">−</button>
+              <span style="min-width:24px;text-align:center;font-size:13px;font-weight:600;color:var(--forest);">${b.cantidad || 1}</span>
+              <button data-action="brig-qty-inc" data-id="${b.id}" style="width:24px;height:24px;border-radius:6px;background:var(--leaf);color:#fff;font-weight:700;font-size:14px;">+</button>
+            </div>
+            <button data-action="remove-brig" data-id="${b.id}" style="color:#C0392B;padding:4px;">${icon("trash", 14)}</button>
+          </div>`).join("") || `<p style="font-size:14px;color:var(--muted2);">Aún no hay integrantes registrados.</p>`}
+        <div style="margin-top:12px;padding:12px;background:var(--pale);border-radius:14px;">
+          <p style="font-size:11px;font-weight:700;color:var(--muted);margin:0 0 8px;">Agregar integrante</p>
+          <div class="flex gap-2 items-center flex-wrap">
+            <div style="flex:2;min-width:140px;">
+              <label class="label">Rol</label>
+              <select class="select" data-bind="newBrig.rol" style="width:100%;">
+                ${["Primeros auxilios", "Control de incendios", "Evacuación", "Vigilancia", "Comunicaciones"].map((r) => `<option ${r === S.newBrig.rol ? "selected" : ""}>${r}</option>`).join("")}
+              </select>
+            </div>
+            <div style="min-width:80px;">
+              <label class="label">Cantidad</label>
+              <div class="flex items-center gap-1">
+                <button data-action="new-brig-qty-dec" style="width:32px;height:38px;border-radius:8px;background:var(--border3);color:var(--forest);font-weight:700;font-size:16px;">−</button>
+                <input class="input" type="number" min="1" max="99" data-bind="newBrig.cantidad" value="${S.newBrig.cantidad}" style="width:50px;text-align:center;padding:10px 4px;" />
+                <button data-action="new-brig-qty-inc" style="width:32px;height:38px;border-radius:8px;background:var(--leaf);color:#fff;font-weight:700;font-size:16px;">+</button>
+              </div>
+            </div>
+            <div style="padding-top:18px;">
+              <button data-action="add-brig" class="btn-leaf" style="height:42px;width:42px;padding:0;">${icon("plus", 18)}</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  } else if (S.adminTab === "simulacros") {
+    const sorted = [...S.simulacros].sort((a, b) => b.fecha.localeCompare(a.fecha));
+    content = `
+      <div class="card">
+        <h3 class="section-title" style="margin-bottom:12px;">Simulacros (mín. 1 al año)</h3>
+        ${sorted.map((s) => `
+          <div class="row-item">
+            ${iconTile("clipboardlist", "pale")}
+            <div class="flex-1"><p style="font-size:14px;font-weight:600;color:var(--forest);margin:0;">${esc(s.tema)}</p><p style="font-size:12px;color:var(--muted2);margin:0;">${esc(s.fecha)}</p></div>
+            <button data-action="remove-sim" data-id="${s.id}" style="color:#C0392B;padding:4px;">${icon("trash", 14)}</button>
+          </div>`).join("") || `<p style="font-size:14px;color:var(--muted2);">Sin registros de simulacros aún.</p>`}
+        <div class="flex gap-2" style="margin-top:10px;">
+          <input class="input" type="date" style="flex:1;" data-bind="newSim.fecha" value="${esc(S.newSim.fecha)}" />
+          <select class="select" data-bind="newSim.tema">
+            ${["Evacuación general", "Sismo", "Incendio", "Primeros auxilios"].map((t) => `<option ${t === S.newSim.tema ? "selected" : ""}>${t}</option>`).join("")}
+          </select>
+          <button data-action="add-sim" class="btn-leaf">${icon("plus", 16)}</button>
+        </div>
+      </div>`;
+  } else if (S.adminTab === "norma") {
+    content = `
+      <div class="card">
+        <h3 class="section-title">Marco nacional</h3>
+        <p style="font-size:14px;line-height:1.6;margin:0;">Ley 1523 de 2012, Política Nacional de Gestión del Riesgo de Desastres, y Marco de Sendai para la Reducción del Riesgo de Desastres 2015–2030.</p>
+      </div>
+      <div class="card" style="margin-top:12px;">
+        <h3 class="section-title">Antioquia · DAGRAN</h3>
+        <ul style="font-size:14px;margin:0;padding-left:18px;line-height:1.7;">
+          <li>Estrategia Departamental de Respuesta a Emergencias (EDRE).</li>
+          <li>Decreto EDRE.</li><li>Decreto 2049.</li><li>Decreto 3979.</li>
+        </ul>
+        <p style="font-size:12px;color:var(--muted3);margin:8px 0 0;">Fuente: Departamento Administrativo de Gestión del Riesgo de Antioquia — DAGRAN, normatividad institucional.</p>
+      </div>
+      <div class="norm-box" style="margin-top:12px;">
+        <h3 style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--mint);margin:0 0 8px;">Aplicación en el plan de emergencia</h3>
+        <p style="font-size:14px;line-height:1.6;margin:0;">El plan de Prado Verde se articula con el Consejo Municipal de Gestión del Riesgo y con los organismos de socorro locales, en línea con la EDRE departamental, con revisión anual del documento y de la caracterización de residentes.</p>
+      </div>`;
+  }
+
+  return `
+  <div class="screen" style="padding-bottom:60px;">
+    <div class="header-dark">
+      <div class="wrap flex items-center justify-between" style="padding:0;">
+        <div><p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--mint);margin:0;">Administración</p><h1 class="font-display" style="font-size:20px;color:#fff;margin:2px 0 0;">Prado Verde</h1></div>
+        <button data-action="logout" style="color:#DCEFE3;padding:8px;">${icon("logout", 19)}</button>
+      </div>
+    </div>
+    <div class="wrap" style="margin-top:-16px;">
+      <div class="stat-bar g4">
+        <div class="stat"><p class="val">${stats.total}</p><p class="lbl">Aptos</p></div>
+        <div class="stat"><p class="val">${stats.registrados}</p><p class="lbl">Con datos</p></div>
+        <div class="stat"><p class="val coral">${stats.prioridad}</p><p class="lbl">Prioridad</p></div>
+        <div class="stat"><p class="val amber">${stats.mascotas}</p><p class="lbl">Mascotas</p></div>
+      </div>
+    </div>
+    <div class="tabs">${tabs.map(([id, label, ic]) => `<button class="tab-btn ${S.adminTab === id ? "active" : ""}" data-action="set-tab" data-tab="${id}">${icon(ic, 13)} ${label}</button>`).join("")}</div>
+    <div class="wrap" style="margin-top:20px;display:flex;flex-direction:column;gap:0;">${content}</div>
+  </div>
+  ${S.modalAptId ? modalApartmentEditor() : ""}`;
+}
+
+function viewResidentDashboard() {
+  const record = S.apartments[S.residentAptId];
+  const c = record.caracterizacion;
+  const vulnerable = c.adultosMayores || c.ninos || c.movilidadReducida || c.dificultadNeurologica;
+  return `
+  <div class="screen" style="padding-bottom:40px;">
+    <div class="header-dark">
+      <div class="wrap flex items-center justify-between" style="padding:0;">
+        <div><p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--mint);margin:0;">Torre ${record.torre} · Apto ${record.numero}</p><h1 class="font-display" style="font-size:20px;color:#fff;margin:2px 0 0;">Mi hogar</h1></div>
+        <button data-action="logout" style="color:#DCEFE3;padding:8px;">${icon("logout", 19)}</button>
+      </div>
+      ${record.alarmaPrioridad ? `<div class="wrap flex items-center gap-2" style="padding:10px 12px;margin-top:12px;background:rgba(224,87,76,.2);border:1px solid rgba(224,87,76,.4);border-radius:14px;">${icon("siren", 15)}<p style="font-size:12px;color:#fff;font-weight:600;margin:0;">Este apartamento está marcado con prioridad de evacuación asistida.</p></div>` : ""}
+    </div>
+    <div class="wrap" style="margin-top:20px;display:flex;flex-direction:column;gap:12px;">
+      <div class="card">
+        <h3 class="section-title">${icon("users", 13)} Residentes (${record.residentes.length})</h3>
+        ${record.residentes.length === 0 ? `<p style="font-size:14px;color:var(--muted2);">Aún no has registrado residentes.</p>` : ""}
+        ${record.residentes.map((r) => `
+          <div class="flex items-center gap-2" style="border-radius:14px;background:var(--pale);padding:8px 12px;margin-bottom:6px;">
+            <div class="flex-1"><p style="font-size:14px;font-weight:500;color:var(--forest);margin:0;">${esc(r.nombre)}</p><p style="font-size:12px;color:var(--muted2);margin:0;">Doc. ${esc(r.documento)}</p></div>
+            ${r.principal ? badge("leaf", "Principal") : ""}
+          </div>`).join("")}
+      </div>
+      <div class="card">
+        <h3 class="section-title">${icon("pawprint", 13)} Mascotas (${record.mascotas.reduce((sum, m) => sum + (m.cantidad || 1), 0)} total)</h3>
+        ${record.mascotas.length === 0 ? `<p style="font-size:14px;color:var(--muted2);">Sin mascotas registradas.</p>` : ""}
+        <div class="flex flex-wrap gap-2">
+          ${record.mascotas.map((m) => `<div class="flex items-center gap-1" style="border-radius:999px;background:var(--pale);padding:6px 12px;">${icon("pawprint", 14)}<span style="font-size:12px;font-weight:500;color:var(--forest);">${esc(m.nombre)}${(m.cantidad || 1) > 1 ? ` (${m.cantidad})` : ''}</span></div>`).join("")}
+        </div>
+      </div>
+      ${vulnerable ? `
+      <div class="card" style="background:var(--amber-bg);border-color:var(--amber-bd);">
+        <h3 class="section-title" style="color:var(--amber-tx);">Caracterización registrada</h3>
+        <div class="flex flex-wrap gap-1">
+          ${c.adultosMayores ? badge("amber", "Personas mayores") : ""}
+          ${c.ninos ? badge("amber", "Niños, niñas") : ""}
+          ${c.movilidadReducida ? badge("amber", "Movilidad reducida") : ""}
+          ${c.dificultadNeurologica ? badge("amber", "Dif. neurológica") : ""}
+        </div>
+      </div>` : ""}
+      <button data-action="open-apt" data-id="${record.id}" data-isadmin="0" class="btn btn-dark">${icon("save", 16)} Actualizar información de mi apartamento</button>
+      <p style="font-size:12px;color:var(--muted3);text-align:center;line-height:1.6;padding:0 16px;">Mantén actualizada esta información: es la que usará la brigada de emergencia de Prado Verde en caso de evacuación.</p>
+    </div>
+  </div>
+  ${S.modalAptId ? modalApartmentEditor() : ""}`;
+}
+
+function modalApartmentEditor() {
+  const d = S.modalData;
+  const c = d.caracterizacion;
+  const carItems = [
+    ["adultosMayores", "Personas mayores", "users"], ["ninos", "Niños, niñas", "baby"],
+    ["movilidadReducida", "Movilidad reducida", "accessibility"], ["dificultadNeurologica", "Dif. neurológica", "brain"],
+  ];
+  return `
+  <div class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="flex-1"><h2 class="font-display" style="font-size:18px;margin:0;">Torre ${d.torre} · Apto ${d.numero}</h2><p style="font-size:11px;color:#B7DAC4;margin:2px 0 0;">${d.id}</p></div>
+        <button data-action="close-modal" style="color:#fff;padding:4px;">${icon("x", 20)}</button>
+      </div>
+      <div style="padding:20px;display:flex;flex-direction:column;gap:20px;">
+
+        <section>
+          <h3 class="section-title">${icon("phone", 13)} Teléfono residente principal (SMS)</h3>
+          <input class="input" data-bind="modalData.telefonoPrincipal" value="${esc(d.telefonoPrincipal)}" placeholder="3001234567" inputmode="numeric" />
+        </section>
+
+        <section>
+          <h3 class="section-title">${icon("users", 13)} Residentes</h3>
+          ${d.residentes.map((r, i) => `
+            <div class="row-item">
+              <div class="flex-1"><p style="font-size:14px;font-weight:500;color:var(--forest);margin:0;">${esc(r.nombre)}</p><p style="font-size:12px;color:var(--muted2);margin:0;">Doc. ${esc(r.documento)}</p></div>
+              ${r.principal ? badge("leaf", "Principal") : `<button data-action="set-principal" data-idx="${i}" style="font-size:10px;color:var(--leaf);font-weight:700;text-decoration:underline;">Hacer principal</button>`}
+              <button data-action="remove-resident" data-idx="${i}" style="color:#C0392B;padding:4px;">${icon("trash", 14)}</button>
+            </div>`).join("")}
+          <div class="flex gap-2" style="margin-top:6px;">
+            <input class="input" style="flex:1;" data-bind="newRes.nombre" value="${esc(S.newRes.nombre)}" placeholder="Nombre completo" />
+            <input class="input" style="width:110px;" data-bind="newRes.documento" value="${esc(S.newRes.documento)}" placeholder="N.° documento" />
+            <button data-action="add-resident" class="btn-leaf">${icon("userplus", 16)}</button>
+          </div>
+        </section>
+
+        <section>
+          <h3 class="section-title">${icon("pawprint", 13)} Mascotas (${d.mascotas.reduce((sum, m) => sum + (m.cantidad || 1), 0)} total)</h3>
+          ${d.mascotas.map((m, i) => `
+            <div class="row-item">
+              ${icon("pawprint", 16)}
+              <p class="flex-1" style="font-size:14px;font-weight:500;color:var(--forest);margin:0;">${esc(m.nombre)}</p>
+              <div class="flex items-center gap-1" style="background:var(--pale);border-radius:8px;padding:2px 4px;">
+                <button data-action="pet-qty-dec" data-idx="${i}" style="width:24px;height:24px;border-radius:6px;background:var(--border3);color:var(--forest);font-weight:700;font-size:14px;">−</button>
+                <span style="min-width:24px;text-align:center;font-size:13px;font-weight:600;color:var(--forest);">${m.cantidad || 1}</span>
+                <button data-action="pet-qty-inc" data-idx="${i}" style="width:24px;height:24px;border-radius:6px;background:var(--leaf);color:#fff;font-weight:700;font-size:14px;">+</button>
+              </div>
+              ${badge("ink", m.tipo)}
+              <button data-action="remove-pet" data-idx="${i}" style="color:#C0392B;padding:4px;">${icon("trash", 14)}</button>
+            </div>`).join("")}
+          <div style="margin-top:8px;padding:12px;background:var(--pale);border-radius:14px;">
+            <p style="font-size:11px;font-weight:700;color:var(--muted);margin:0 0 8px;">Agregar mascota</p>
+            <div class="flex gap-2 items-center flex-wrap">
+              <div style="flex:2;min-width:120px;">
+                <label class="label">Nombre</label>
+                <input class="input" data-bind="newPet.nombre" value="${esc(S.newPet.nombre)}" placeholder="Ej: Luna, Max..." />
+              </div>
+              <div style="flex:1;min-width:90px;">
+                <label class="label">Tipo</label>
+                <select class="select" data-bind="newPet.tipo" style="width:100%;">
+                  <option value="Canino" ${S.newPet.tipo === "Canino" ? "selected" : ""}>Canino</option>
+                  <option value="Felino" ${S.newPet.tipo === "Felino" ? "selected" : ""}>Felino</option>
+                  <option value="Ave" ${S.newPet.tipo === "Ave" ? "selected" : ""}>Ave</option>
+                  <option value="Otro" ${S.newPet.tipo === "Otro" ? "selected" : ""}>Otro</option>
+                </select>
+              </div>
+              <div style="min-width:80px;">
+                <label class="label">Cantidad</label>
+                <div class="flex items-center gap-1">
+                  <button data-action="new-pet-qty-dec" style="width:32px;height:38px;border-radius:8px;background:var(--border3);color:var(--forest);font-weight:700;font-size:16px;">−</button>
+                  <input class="input" type="number" min="1" max="99" data-bind="newPet.cantidad" value="${S.newPet.cantidad}" style="width:50px;text-align:center;padding:10px 4px;" />
+                  <button data-action="new-pet-qty-inc" style="width:32px;height:38px;border-radius:8px;background:var(--leaf);color:#fff;font-weight:700;font-size:16px;">+</button>
+                </div>
+              </div>
+              <div style="padding-top:18px;">
+                <button data-action="add-pet" class="btn-leaf" style="height:42px;width:42px;padding:0;">${icon("plus", 18)}</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h3 class="section-title">${icon("heartpulse", 13)} Caracterización de habitantes</h3>
+          <div class="g2">
+            ${carItems.map(([key, label, ic]) => `<button data-action="toggle-car" data-key="${key}" class="toggle-btn ${c[key] ? "active" : ""}">${icon(ic, 15)} ${label}</button>`).join("")}
+          </div>
+          <input class="input" style="margin-top:8px;" data-bind="modalData.caracterizacion.otras" value="${esc(c.otras)}" placeholder="Otras condiciones relevantes (opcional)" />
+        </section>
+
+        ${S.modalIsAdmin ? `
+        <section>
+          <h3 class="section-title">${icon("siren", 13)} Alarma de prioridad (administración)</h3>
+          <button data-action="toggle-alarm" class="btn ${d.alarmaPrioridad ? "" : "btn-dark"}" style="${d.alarmaPrioridad ? "background:var(--coral);color:#fff;" : "background:#fff;color:var(--ink);border:1px solid var(--border3);"} justify-content:flex-start;">
+            ${icon("bell", 16)} ${d.alarmaPrioridad ? "Prioridad activada — evacuación asistida" : "Activar prioridad de evacuación asistida"}
+          </button>
+          <textarea class="input" rows="2" style="margin-top:8px;" data-bind="modalData.notaAdmin" placeholder="Nota interna para brigada (ej: silla de ruedas, oxígeno, piso alto sin ascensor...)">${esc(d.notaAdmin)}</textarea>
+        </section>` : ""}
+
+        <button data-action="save-apt" class="btn btn-dark">${icon("save", 16)} Guardar información</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------------------------- Render principal ---------------------------- */
+
+function render() {
+  const root = document.getElementById("root");
+  if (S.loading || !S.apartments) {
+    root.innerHTML = `<div class="screen flex items-center justify-center" style="min-height:100vh;"><div class="flex flex-col items-center gap-3">${icon("pawprint", 28)}<p style="font-size:14px;color:var(--muted);">Cargando Prado Verde…</p></div></div>`;
+    return;
+  }
+  let html = "";
+  if (S.view === "landing") html = viewLanding();
+  else if (S.view === "admin-login") html = viewAdminLogin();
+  else if (S.view === "admin") html = viewAdminDashboard();
+  else if (S.view === "resident-login") html = viewResidentLogin();
+  else if (S.view === "resident") html = viewResidentDashboard();
+  root.innerHTML = html;
+}
+
+/* ---------------------------- Manejo de eventos ---------------------------- */
+
+const root = document.getElementById("root");
+
+root.addEventListener("input", (e) => {
+  const el = e.target;
+  if (el.dataset.bind) {
+    setDeep(S, el.dataset.bind, el.value);
+    if (el.dataset.live === "apt-search-results") {
+      document.getElementById("apt-search-results").innerHTML = aptSearchResultsHTML();
+    }
+  }
+});
+
+root.addEventListener("change", (e) => {
+  const el = e.target;
+  if (el.dataset.bind) {
+    let val = el.value;
+    if (el.tagName === "SELECT" && !isNaN(Number(val)) && ["residentTorre", "residentPiso"].includes(el.dataset.bind)) val = Number(val);
+    setDeep(S, el.dataset.bind, val);
+    render();
+  }
+});
+
+root.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const action = e.target.dataset.action;
+
+  if (action === "admin-login-submit") {
+    try {
+      const { ok, data } = await apiPost("/auth/admin/login", { usuario: S.formAdmin.user, password: S.formAdmin.pass });
+      S.backendModo = true;
+      if (ok) {
+        S.adminToken = data.token; S.adminErr = ""; S.view = "admin";
+        saveSession();
+      } else {
+        S.adminErr = data.error || "Usuario o contraseña incorrectos.";
+      }
+    } catch (netErr) {
+      // Backend no disponible: modo demo local
+      S.backendModo = false;
+      if (S.formAdmin.user.trim().toLowerCase() === "admin" && S.formAdmin.pass === "Login exito2026") {
+        S.adminErr = ""; S.view = "admin";
+        saveSession();
+      } else { S.adminErr = "Usuario o contraseña incorrectos."; }
+    }
+    render();
+  }
+
+  else if (action === "resident-verify") {
+    const [torre, piso, apto] = [S.residentTorre, S.residentPiso, S.residentApto];
+    if (S.backendModo === true) {
+      try {
+        const { ok, data } = await apiPost("/auth/resident/verify-code", { torre, piso, apto, codigo: S.residentOtpInput.trim() });
+        if (ok) {
+          S.residentToken = data.token;
+          S.residentAptId = aptoId(torre, piso, apto);
+          S.view = "resident"; S.residentErr = "";
+          saveSession();
+        } else { S.residentErr = data.error || "Código incorrecto."; }
+      } catch (netErr) {
+        S.residentErr = "No se pudo contactar al backend para verificar el código.";
+      }
+    } else {
+      // Modo demo local (backend no disponible)
+      if (S.residentOtpInput.trim() === S.residentOtp) {
+        S.residentAptId = aptoId(torre, piso, apto);
+        S.view = "resident"; S.residentErr = "";
+        saveSession();
+      } else { S.residentErr = "Código incorrecto. Verifica el mensaje de texto recibido."; }
+    }
+    render();
+  }
+});
+
+root.addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-action]");
+  if (!btn) return;
+  const action = btn.dataset.action;
+
+  if (action === "goto") { S.view = btn.dataset.view; S.adminErr = ""; S.residentErr = ""; render(); }
+
+  else if (action === "logout") {
+    S.view = "landing"; S.residentAptId = null; S.modalAptId = null; S.adminToken = null; S.residentToken = null;
+    S.formAdmin = { user: "", pass: "" }; S.residentStep = 1; S.residentOtp = null; S.residentOtpInput = "";
+    localStorage.removeItem('pv2:session');
+    render();
+  }
+
+  else if (action === "toggle-pass") {
+    S.showPass = !S.showPass;
+    render();
+  }
+
+  else if (action === "resident-request-code") {
+    const torre = S.residentTorre, piso = S.residentPiso, apto = S.residentApto;
+    try {
+      const { ok, data } = await apiPost("/auth/resident/request-code", { torre, piso, apto });
+      S.backendModo = true;
+      if (ok) {
+        S.residentDemoBanner = data.codigoDemo
+          ? `Código enviado por SMS a ${data.telefonoEnmascarado}. (Backend en modo desarrollo — código: ${data.codigoDemo})`
+          : `Código enviado por SMS a ${data.telefonoEnmascarado}.`;
+        S.residentStep = 2; S.residentErr = "";
+      } else {
+        S.residentErr = data.error || "No se pudo enviar el código.";
+      }
+    } catch (netErr) {
+      // Backend no disponible: modo demo local usando los datos guardados en este navegador
+      S.backendModo = false;
+      const id = aptoId(torre, piso, apto);
+      const record = S.apartments[id];
+      if (!record.telefonoPrincipal) {
+        S.residentErr = "Este apartamento aún no tiene un número de residente principal vinculado. Contacte a la administración.";
+      } else {
+        const code = genOtp();
+        S.residentOtp = code;
+        S.residentDemoBanner = `Código enviado por SMS a ${maskPhone(record.telefonoPrincipal)}. (Demo local — backend no disponible: ${code})`;
+        S.residentStep = 2; S.residentErr = "";
+      }
+    }
+    render();
+  }
+  else if (action === "resident-change-apt") { S.residentStep = 1; S.residentErr = ""; S.residentOtpInput = ""; render(); }
+
+  else if (action === "set-tab") { S.adminTab = btn.dataset.tab; S.selectorTorre = null; S.selectorPiso = null; render(); }
+
+  else if (action === "select-torre") {
+    S.selectorTorre = Number(btn.dataset.torre);
+    S.selectorPiso = null;
+    render();
+  }
+  else if (action === "select-piso") {
+    S.selectorPiso = Number(btn.dataset.piso);
+    render();
+  }
+  else if (action === "clear-torre") {
+    S.selectorTorre = null;
+    S.selectorPiso = null;
+    render();
+  }
+  else if (action === "clear-piso") {
+    S.selectorPiso = null;
+    render();
+  }
+
+  else if (action === "open-apt") {
+    S.modalAptId = btn.dataset.id;
+    S.modalIsAdmin = btn.dataset.isadmin === "1";
+    S.modalData = JSON.parse(JSON.stringify(S.apartments[btn.dataset.id]));
+    S.newRes = { nombre: "", documento: "" };
+    S.newPet = { nombre: "", tipo: "Canino", cantidad: 1 };
+    render();
+  }
+  else if (action === "close-modal") { S.modalAptId = null; S.modalData = null; render(); }
+
+  else if (action === "add-resident") {
+    if (!S.newRes.nombre.trim() || !S.newRes.documento.trim()) return;
+    S.modalData.residentes.push({ ...S.newRes, principal: S.modalData.residentes.length === 0 });
+    S.newRes = { nombre: "", documento: "" };
+    render();
+  }
+  else if (action === "remove-resident") { S.modalData.residentes.splice(Number(btn.dataset.idx), 1); render(); }
+  else if (action === "set-principal") {
+    S.modalData.residentes.forEach((r, i) => r.principal = i === Number(btn.dataset.idx));
+    render();
+  }
+  else if (action === "add-pet") {
+    if (!S.newPet.nombre.trim()) return;
+    S.modalData.mascotas.push({ ...S.newPet, cantidad: S.newPet.cantidad || 1 });
+    S.newPet = { nombre: "", tipo: "Canino", cantidad: 1 };
+    render();
+  }
+  else if (action === "pet-qty-inc") {
+    const idx = Number(btn.dataset.idx);
+    S.modalData.mascotas[idx].cantidad = (S.modalData.mascotas[idx].cantidad || 1) + 1;
+    render();
+  }
+  else if (action === "pet-qty-dec") {
+    const idx = Number(btn.dataset.idx);
+    if ((S.modalData.mascotas[idx].cantidad || 1) > 1) {
+      S.modalData.mascotas[idx].cantidad = (S.modalData.mascotas[idx].cantidad || 1) - 1;
+      render();
+    }
+  }
+  else if (action === "new-pet-qty-inc") {
+    S.newPet.cantidad = (S.newPet.cantidad || 1) + 1;
+    render();
+  }
+  else if (action === "new-pet-qty-dec") {
+    if ((S.newPet.cantidad || 1) > 1) {
+      S.newPet.cantidad = (S.newPet.cantidad || 1) - 1;
+      render();
+    }
+  }
+  else if (action === "remove-pet") { S.modalData.mascotas.splice(Number(btn.dataset.idx), 1); render(); }
+  else if (action === "toggle-car") {
+    const key = btn.dataset.key;
+    S.modalData.caracterizacion[key] = !S.modalData.caracterizacion[key];
+    render();
+  }
+  else if (action === "toggle-alarm") { S.modalData.alarmaPrioridad = !S.modalData.alarmaPrioridad; render(); }
+
+  else if (action === "save-apt") {
+    S.apartments[S.modalData.id] = S.modalData;
+    saveApartments(S.apartments);
+    S.modalAptId = null; S.modalData = null;
+    render();
+  }
+
+  else if (action === "add-brig") {
+    S.brigada.push({ rol: S.newBrig.rol, cantidad: S.newBrig.cantidad || 1, id: Date.now() });
+    saveBrigada(S.brigada);
+    S.newBrig = { nombre: "", rol: "Primeros auxilios", cantidad: 1 };
+    render();
+  }
+  else if (action === "brig-qty-inc") {
+    const b = S.brigada.find(x => String(x.id) === btn.dataset.id);
+    if (b) { b.cantidad = (b.cantidad || 1) + 1; saveBrigada(S.brigada); render(); }
+  }
+  else if (action === "brig-qty-dec") {
+    const b = S.brigada.find(x => String(x.id) === btn.dataset.id);
+    if (b && (b.cantidad || 1) > 1) { b.cantidad = (b.cantidad || 1) - 1; saveBrigada(S.brigada); render(); }
+  }
+  else if (action === "new-brig-qty-inc") {
+    S.newBrig.cantidad = (S.newBrig.cantidad || 1) + 1;
+    render();
+  }
+  else if (action === "new-brig-qty-dec") {
+    if ((S.newBrig.cantidad || 1) > 1) {
+      S.newBrig.cantidad = (S.newBrig.cantidad || 1) - 1;
+      render();
+    }
+  }
+  else if (action === "remove-brig") {
+    S.brigada = S.brigada.filter((b) => String(b.id) !== btn.dataset.id);
+    saveBrigada(S.brigada); render();
+  }
+  else if (action === "add-sim") {
+    if (!S.newSim.fecha) return;
+    S.simulacros.push({ ...S.newSim, id: Date.now() });
+    saveSimulacros(S.simulacros);
+    S.newSim = { fecha: "", tema: "Evacuación general" };
+    render();
+  }
+  else if (action === "remove-sim") {
+    S.simulacros = S.simulacros.filter((s) => String(s.id) !== btn.dataset.id);
+    saveSimulacros(S.simulacros); render();
+  }
+});
+
+/* ---------------------------- Persistencia de sesión ---------------------------- */
+
+function saveSession() {
+  const session = {
+    view: S.view,
+    adminToken: S.adminToken,
+    residentToken: S.residentToken,
+    residentAptId: S.residentAptId,
+    backendModo: S.backendModo,
+  };
+  localStorage.setItem('pv2:session', JSON.stringify(session));
+}
+
+function restoreSession() {
+  try {
+    const saved = localStorage.getItem('pv2:session');
+    if (saved) {
+      const session = JSON.parse(saved);
+      if (session.adminToken || session.residentToken) {
+        S.view = session.view;
+        S.adminToken = session.adminToken;
+        S.residentToken = session.residentToken;
+        S.residentAptId = session.residentAptId;
+        S.backendModo = session.backendModo;
+        return true;
+      }
+    }
+  } catch (e) {}
+  return false;
+}
+
+/* ---------------------------- Arranque ---------------------------- */
+
+(async () => {
+  const [apts, brig, sims] = await Promise.all([loadApartments(), loadBrigada(), loadSimulacros()]);
+  S.apartments = apts; S.brigada = brig; S.simulacros = sims; S.loading = false;
+  restoreSession();
+  render();
+})();
+render();
+</script>
+</body>
+</html>
