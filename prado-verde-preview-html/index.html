@@ -141,22 +141,11 @@ function esc(s) { return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&am
 
 /* ---------------------------- Almacenamiento persistente ---------------------------- */
 
-// Guardar en localStorage como cache/fallback
-async function loadApartmentsLocal() {
-  try {
-    const res = await window.storage.get("pv2:apartments", true);
-    if (res && res.value) return JSON.parse(res.value);
-  } catch (e) {}
-  return seedApartments();
-}
-async function saveApartmentsLocal(data) { 
-  try { await window.storage.set("pv2:apartments", JSON.stringify(data), true); } catch (e) { console.error(e); } 
-}
-
-// Cargar apartamentos: intenta del backend, fallback a localStorage
+// Cargar apartamentos: siempre inicia con estructura vacía
+// Los datos reales se cargan del backend cuando se necesitan
 async function loadApartments() {
-  const localData = await loadApartmentsLocal();
-  return localData;
+  // Crear estructura base vacía - los datos vienen del backend
+  return seedApartments();
 }
 
 // Cargar datos de un apartamento específico desde el backend
@@ -319,8 +308,8 @@ async function saveApartmentToBackend(aptData) {
 }
 
 async function saveApartments(data) { 
-  // Siempre guardar en localStorage como cache
-  await saveApartmentsLocal(data);
+  // Ya no guardamos en localStorage - todo va al backend
+  // Los datos se guardan con saveApartmentToBackend()
 }
 
 // Cargar métodos de contacto disponibles desde el backend (público)
@@ -1339,9 +1328,8 @@ root.addEventListener("click", async (e) => {
         caracterizacion: backendData.caracterizacion.adultosMayores !== undefined ? backendData.caracterizacion : localApt.caracterizacion,
         alarmaPrioridad: backendData.alarmaPrioridad || localApt.alarmaPrioridad,
       };
-      // Actualizar también el cache local
+      // Actualizar también el estado local en memoria
       S.apartments[aptId] = { ...S.apartments[aptId], ...S.modalData };
-      saveApartmentsLocal(S.apartments);
     } else {
       S.modalData = JSON.parse(JSON.stringify(S.apartments[aptId]));
     }
