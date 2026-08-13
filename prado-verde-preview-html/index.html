@@ -212,11 +212,14 @@ async function saveApartmentToBackend(aptData) {
   const token = S.adminToken || S.residentToken;
   if (!token) {
     console.warn("No hay token para guardar en backend");
-    return { ok: false };
+    return { ok: false, error: "No hay sesión activa. Inicia sesión de nuevo." };
   }
+  
+  console.log("🔄 Guardando en backend:", aptData.id, "con token:", token.substring(0, 20) + "...");
   
   try {
     // 1. Actualizar datos de contacto
+    console.log("📞 Actualizando contacto...");
     const contactRes = await fetch(`${API_BASE_URL}/apartments/${aptData.id}`, {
       method: "PUT",
       headers: { 
@@ -232,17 +235,21 @@ async function saveApartmentToBackend(aptData) {
     
     if (!contactRes.ok) {
       const err = await contactRes.json();
-      console.error("Error actualizando contacto:", err);
+      console.error("❌ Error actualizando contacto:", err);
+      return { ok: false, error: err.error || "Error actualizando contacto" };
     }
+    console.log("✅ Contacto actualizado");
     
     // 2. Limpiar residentes existentes y agregar nuevos
+    console.log("👥 Limpiando residentes existentes...");
     await fetch(`${API_BASE_URL}/apartments/${aptData.id}/residentes/clear`, {
       method: "DELETE",
       headers: { "Authorization": `Bearer ${token}` }
     });
     
+    console.log("👥 Agregando", aptData.residentes.length, "residentes...");
     for (const residente of aptData.residentes) {
-      await fetch(`${API_BASE_URL}/apartments/${aptData.id}/residentes`, {
+      const resRes = await fetch(`${API_BASE_URL}/apartments/${aptData.id}/residentes`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -254,16 +261,21 @@ async function saveApartmentToBackend(aptData) {
           es_principal: residente.principal || false
         }),
       });
+      if (!resRes.ok) {
+        console.error("❌ Error guardando residente:", await resRes.text());
+      }
     }
     
     // 3. Limpiar mascotas existentes y agregar nuevas
+    console.log("🐾 Limpiando mascotas existentes...");
     await fetch(`${API_BASE_URL}/apartments/${aptData.id}/mascotas/clear`, {
       method: "DELETE",
       headers: { "Authorization": `Bearer ${token}` }
     });
     
+    console.log("🐾 Agregando", aptData.mascotas.length, "mascotas...");
     for (const mascota of aptData.mascotas) {
-      await fetch(`${API_BASE_URL}/apartments/${aptData.id}/mascotas`, {
+      const mascRes = await fetch(`${API_BASE_URL}/apartments/${aptData.id}/mascotas`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -275,9 +287,13 @@ async function saveApartmentToBackend(aptData) {
           cantidad: mascota.cantidad || 1
         }),
       });
+      if (!mascRes.ok) {
+        console.error("❌ Error guardando mascota:", await mascRes.text());
+      }
     }
     
     // 4. Guardar caracterización
+    console.log("📋 Guardando caracterización...");
     const c = aptData.caracterizacion;
     await fetch(`${API_BASE_URL}/apartments/${aptData.id}/caracterizacion`, {
       method: "PUT",
@@ -1344,13 +1360,12 @@ root.addEventListener("click", async (e) => {
     saveApartments(S.apartments);
     
     // Intentar guardar en backend
-    saveApartmentToBackend(S.modalData).then(result => {
-      if (result.ok) {
-        console.log("✅ Guardado en backend exitosamente");
-      } else {
-        console.warn("⚠️ Guardado solo localmente (backend no disponible)");
-      }
-    });
+    const result = await saveApartmentToBackend(S.modalData);
+    if (result.ok) {
+      alert("✅ Datos guardados correctamente en el servidor");
+    } else {
+      alert("⚠️ Datos guardados solo localmente. Error: " + (result.error || "Backend no disponible"));
+    }
     
     S.modalAptId = null; S.modalData = null;
     render();
