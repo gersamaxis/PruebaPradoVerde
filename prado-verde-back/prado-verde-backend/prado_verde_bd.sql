@@ -88,7 +88,37 @@ BEGIN
     END LOOP;
 END $$;
 
+-- =====================================================
+-- APARTAMENTOS DE PRUEBA CON DATOS DE CONTACTO
+-- Actualiza estos con datos reales para probar
+-- =====================================================
+UPDATE apartamentos 
+SET 
+    telefono_principal = '+573001234567',
+    whatsapp = '+573001234567',
+    email = 'residente.prueba@ejemplo.com'
+WHERE identificador = 'T1-0101';
+
+UPDATE apartamentos 
+SET 
+    telefono_principal = '+573009876543',
+    whatsapp = '+573009876543',
+    email = 'residente2@ejemplo.com'
+WHERE identificador = 'T1-0102';
+
+UPDATE apartamentos 
+SET 
+    telefono_principal = '+573005551234',
+    email = 'solo.email@ejemplo.com'
+WHERE identificador = 'T1-0201';
+
 -- Verificar que todo se creó correctamente
 SELECT 'Administradores:' AS tabla, COUNT(*) AS total FROM administradores
 UNION ALL
-SELECT 'Apartamentos:', COUNT(*) FROM apartamentos;
+SELECT 'Apartamentos:', COUNT(*) FROM apartamentos
+UNION ALL
+SELECT 'Aptos con teléfono:', COUNT(*) FROM apartamentos WHERE telefono_principal IS NOT NULL
+UNION ALL
+SELECT 'Aptos con WhatsApp:', COUNT(*) FROM apartamentos WHERE whatsapp IS NOT NULL
+UNION ALL
+SELECT 'Aptos con email:', COUNT(*) FROM apartamentos WHERE email IS NOT NULL;
