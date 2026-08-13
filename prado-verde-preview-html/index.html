@@ -215,7 +215,7 @@ function iconTile(name, tone) { return `<div class="icon-tile ${tone}">${icon(na
    conexión a él), la app cae automáticamente al modo demo local
    para que la previsualización siga funcionando.
 --------------------------------------------------------------- */
-const API_BASE_URL = "https://pruebapradoverde-back.onrender.com";
+const API_BASE_URL = "https://pruebapradoverde-back.onrender.com/api";
 
 async function apiPost(path, body) {
   const res = await fetch(`${API_BASE_URL}${path}`, {
