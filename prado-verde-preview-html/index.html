@@ -7,7 +7,6 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap');
   :root{
-    
     --forest:#1B4332; --leaf:#2D6A4F; --mint:#74C69D; --pale:#F1FAF5; --white:#FFFFFF;
     --amber:#E8A33D; --amber-bg:#FDF1DF; --amber-bd:#F3D9A6; --amber-tx:#8A5A17;
     --coral:#E0574C; --coral-bg:#FBE7E5; --coral-bd:#F3BDB6; --coral-tx:#9B2C22;
@@ -15,7 +14,6 @@
     --ink:#33473C; --ink-bg:#EEF3F0; --ink-bd:#D8E3DC;
     --border:#DCEEE2; --border2:#E4EFE8; --border3:#CFE6D8;
     --muted:#5B7A6A; --muted2:#7C9789; --muted3:#8AA598; --muted4:#9BBFAA;
-
   }
   *{box-sizing:border-box;}
   body{margin:0;font-family:'Inter',sans-serif;background:var(--pale);color:var(--ink);}
@@ -217,7 +215,7 @@ function iconTile(name, tone) { return `<div class="icon-tile ${tone}">${icon(na
    conexión a él), la app cae automáticamente al modo demo local
    para que la previsualización siga funcionando.
 --------------------------------------------------------------- */
-const API_BASE_URL = "https://round-better-students-icons.trycloudflare.com/api";
+const API_BASE_URL = "https://pruebapradoverde-back.onrender.com";
 
 async function apiPost(path, body) {
   const res = await fetch(`${API_BASE_URL}${path}`, {
