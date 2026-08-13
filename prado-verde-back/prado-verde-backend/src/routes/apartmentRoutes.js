@@ -345,4 +345,120 @@ router.put("/:identificador/caracterizacion", requireAuth(), async (req, res) =>
   }
 });
 
+/* =====================================================================
+   AUTO-REGISTRO PÚBLICO DE DATOS DEL APARTAMENTO
+   POST /api/apartments/:identificador/self-register
+   
+   Endpoint SIN autenticación para que los residentes puedan registrar
+   sus datos desde el formulario público. Incluye rate limiting básico.
+===================================================================== */
+const selfRegisterLimits = {}; // { ip: { count, lastReset } }
+const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hora
+const RATE_LIMIT_MAX = 10; // 10 registros por hora por IP
+
+router.post("/:identificador/self-register", async (req, res) => {
+  try {
+    const { identificador } = req.params;
+    const clientIp = req.ip || req.connection.remoteAddress || "unknown";
+    
+    // Rate limiting básico
+    const now = Date.now();
+    if (!selfRegisterLimits[clientIp] || now - selfRegisterLimits[clientIp].lastReset > RATE_LIMIT_WINDOW) {
+      selfRegisterLimits[clientIp] = { count: 0, lastReset: now };
+    }
+    selfRegisterLimits[clientIp].count++;
+    if (selfRegisterLimits[clientIp].count > RATE_LIMIT_MAX) {
+      return res.status(429).json({ ok: false, error: "Demasiados intentos. Intente de nuevo en 1 hora." });
+    }
+    
+    const { 
+      telefono_principal, whatsapp, email,
+      residentes, // [{ nombre, documento, es_principal }]
+      mascotas,   // [{ nombre, tipo, cantidad }]
+      caracterizacion // { personas_mayores, ninos, movilidad_reducida, dificultad_neurologica }
+    } = req.body;
+
+    // Validar que el apartamento existe
+    const aptoResult = await pool.query(
+      `SELECT id FROM apartamentos WHERE identificador = $1`,
+      [identificador]
+    );
+    if (aptoResult.rows.length === 0) {
+      return res.status(404).json({ ok: false, error: "Apartamento no encontrado." });
+    }
+    const apartamentoId = aptoResult.rows[0].id;
+
+    // 1. Actualizar datos de contacto
+    await pool.query(
+      `UPDATE apartamentos 
+       SET telefono_principal = COALESCE($1, telefono_principal),
+           whatsapp = COALESCE($2, whatsapp),
+           email = COALESCE($3, email)
+       WHERE id = $4`,
+      [telefono_principal || null, whatsapp || null, email || null, apartamentoId]
+    );
+
+    // 2. Reemplazar residentes (borrar y crear nuevos)
+    if (Array.isArray(residentes)) {
+      await pool.query(`DELETE FROM residentes WHERE apartamento_id = $1`, [apartamentoId]);
+      for (const r of residentes) {
+        if (r.nombre && r.documento) {
+          await pool.query(
+            `INSERT INTO residentes (apartamento_id, nombre, documento, es_principal)
+             VALUES ($1, $2, $3, $4)`,
+            [apartamentoId, r.nombre, r.documento, r.es_principal || false]
+          );
+        }
+      }
+    }
+
+    // 3. Reemplazar mascotas
+    if (Array.isArray(mascotas)) {
+      await pool.query(`DELETE FROM mascotas WHERE apartamento_id = $1`, [apartamentoId]);
+      for (const m of mascotas) {
+        if (m.nombre && m.tipo) {
+          const tipoNorm = m.tipo.toLowerCase();
+          if (["canino", "felino", "ave", "otro"].includes(tipoNorm)) {
+            await pool.query(
+              `INSERT INTO mascotas (apartamento_id, nombre, tipo, cantidad)
+               VALUES ($1, $2, $3, $4)`,
+              [apartamentoId, m.nombre, tipoNorm, m.cantidad || 1]
+            );
+          }
+        }
+      }
+    }
+
+    // 4. Actualizar caracterización
+    if (caracterizacion) {
+      await pool.query(
+        `INSERT INTO caracterizacion_apartamentos 
+         (apartamento_id, personas_mayores, ninos, movilidad_reducida, dificultad_neurologica, prioridad_evacuacion)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (apartamento_id) 
+         DO UPDATE SET 
+           personas_mayores = EXCLUDED.personas_mayores,
+           ninos = EXCLUDED.ninos,
+           movilidad_reducida = EXCLUDED.movilidad_reducida,
+           dificultad_neurologica = EXCLUDED.dificultad_neurologica,
+           prioridad_evacuacion = EXCLUDED.prioridad_evacuacion`,
+        [
+          apartamentoId, 
+          caracterizacion.personas_mayores || false, 
+          caracterizacion.ninos || false, 
+          caracterizacion.movilidad_reducida || false, 
+          caracterizacion.dificultad_neurologica || false,
+          caracterizacion.prioridad_evacuacion || false
+        ]
+      );
+    }
+
+    console.log(`✅ Auto-registro exitoso para ${identificador} desde ${clientIp}`);
+    return res.json({ ok: true, message: "Información registrada correctamente." });
+  } catch (err) {
+    console.error("Error en self-register:", err);
+    return res.status(500).json({ ok: false, error: "Error interno al guardar la información." });
+  }
+});
+
 module.exports = router;

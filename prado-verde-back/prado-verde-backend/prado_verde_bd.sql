@@ -122,31 +122,13 @@ BEGIN
 END $$;
 
 -- =====================================================
--- APARTAMENTOS DE PRUEBA CON DATOS DE CONTACTO
--- Actualiza estos con datos reales para probar
+-- APARTAMENTOS DE PRUEBA
+-- Los datos de contacto reales se configuran via API o SQL manual
+-- NO poner datos personales reales en este archivo (es público)
 -- =====================================================
 
--- Apartamento de prueba principal con datos reales
-UPDATE apartamentos 
-SET 
-    telefono_principal = '+573234878604',
-    whatsapp = '+573234878604',
-    email = 'yoa155@gmail.com'
-WHERE identificador = 'T2-0606';
-
-UPDATE apartamentos 
-SET 
-    telefono_principal = '+573234878604',
-    whatsapp = '+573234878604',
-    email = 'yoa155@gmail.com'
-WHERE identificador = 'T1-0101';
-
-UPDATE apartamentos 
-SET 
-    telefono_principal = '+573234878604',
-    whatsapp = '+573234878604',
-    email = 'yoa155@gmail.com'
-WHERE identificador = 'T1-0102';
+-- Ejemplo: actualizar apartamento de prueba (ejecutar manualmente con datos reales)
+-- UPDATE apartamentos SET telefono_principal = '+57XXXXXXXXXX', whatsapp = '+57XXXXXXXXXX', email = 'correo@ejemplo.com' WHERE identificador = 'T1-0101';
 
 -- Verificar que todo se creó correctamente
 SELECT 'Administradores:' AS tabla, COUNT(*) AS total FROM administradores
