@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 
 const authRoutes = require("./routes/authRoutes");
+const apartmentRoutes = require("./routes/apartmentRoutes");
 const { requireAuth } = require("./middleware/authMiddleware");
 
 const app = express();
@@ -19,7 +20,8 @@ app.get("/", (req, res) => {
       health: "/api/health",
       adminLogin: "POST /api/auth/admin/login",
       residentRequestCode: "POST /api/auth/resident/request-code",
-      residentVerifyCode: "POST /api/auth/resident/verify-code"
+      residentVerifyCode: "POST /api/auth/resident/verify-code",
+      apartments: "/api/apartments/:identificador"
     }
   });
 });
@@ -27,6 +29,7 @@ app.get("/", (req, res) => {
 app.get("/api/health", (req, res) => res.json({ ok: true, service: "prado-verde-backend" }));
 
 app.use("/api/auth", authRoutes);
+app.use("/api/apartments", apartmentRoutes);
 
 // Ejemplos de rutas protegidas (a completar con la lógica real de apartamentos, etc.)
 app.get("/api/admin/ping", requireAuth("admin"), (req, res) => {
