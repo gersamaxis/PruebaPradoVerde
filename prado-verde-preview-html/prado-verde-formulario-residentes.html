@@ -93,16 +93,29 @@ function seedApartments() {
   })));
   return out;
 }
+
+/* ---------------------------- API Backend ---------------------------- */
+const API_BASE_URL = "https://pruebapradoverde-back.onrender.com/api";
+
 async function loadApartments() {
-  try {
-    const res = await window.storage.get("pv2:apartments", true);
-    if (res && res.value) return JSON.parse(res.value);
-  } catch (e) {}
-  const seeded = seedApartments();
-  try { await window.storage.set("pv2:apartments", JSON.stringify(seeded), true); } catch (e) {}
-  return seeded;
+  // Siempre devolvemos la estructura local (el formulario no necesita cargar del backend)
+  return seedApartments();
 }
-async function saveApartments(data) { try { await window.storage.set("pv2:apartments", JSON.stringify(data), true); } catch (e) { console.error(e); } }
+
+async function saveToBackend(identificador, data) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/apartments/${identificador}/self-register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    const result = await response.json();
+    return { ok: response.ok, ...result };
+  } catch (err) {
+    console.error("Error al guardar en backend:", err);
+    return { ok: false, error: "No se pudo conectar con el servidor. Verifica tu conexión a internet." };
+  }
+}
 
 /* ---------------------------- Íconos ---------------------------- */
 
@@ -511,24 +524,48 @@ async function submitForm() {
   }
 
   const id = aptoId(S.torre, S.piso, S.apto);
-  const apartments = await loadApartments(); // recarga por si otro residente guardó mientras tanto
-  const rec = apartments[id];
+  const personasValidas = S.personas.filter((p) => p.nombre.trim() && p.documento.trim());
+  
+  // Preparar datos para el backend
+  const dataToSend = {
+    telefono_principal: titular.celular.replace(/\D/g, ""),
+    whatsapp: (titular.whatsappIgual ? titular.celular : titular.whatsapp).replace(/\D/g, ""),
+    email: titular.correo.trim(),
+    residentes: personasValidas.map((p) => ({
+      nombre: p.nombre.trim(),
+      documento: p.documento.trim(),
+      es_principal: p.principal,
+    })),
+    mascotas: S.mascotas.map((m) => ({
+      nombre: m.nombre || m.tipo,
+      tipo: m.tipo.toLowerCase() === "perro" ? "canino" : 
+            m.tipo.toLowerCase() === "gato" ? "felino" : 
+            m.tipo.toLowerCase() === "pájaro" || m.tipo.toLowerCase() === "ave" ? "ave" : "otro",
+      cantidad: m.cantidad || 1,
+    })),
+    caracterizacion: {
+      personas_mayores: S.caracterizacion.adultosMayores,
+      ninos: S.caracterizacion.ninos,
+      movilidad_reducida: S.caracterizacion.movilidadReducida,
+      dificultad_neurologica: S.caracterizacion.dificultadNeurologica,
+    },
+  };
 
-  rec.residentes = personasValidas.map((p) => ({
-    nombre: p.nombre.trim(), documento: p.documento.trim(), tipoDocumento: p.tipoDocumento,
-    edad: p.edad ? Number(p.edad) : null, principal: p.principal,
-  }));
-  rec.telefonoPrincipal = titular.celular.replace(/\D/g, "");
-  rec.whatsappPrincipal = (titular.whatsappIgual ? titular.celular : titular.whatsapp).replace(/\D/g, "");
-  rec.correoPrincipal = titular.correo.trim();
-  rec.mascotas = S.mascotas.map((m) => ({ ...m }));
-  rec.caracterizacion = { ...S.caracterizacion };
-  rec.actualizadoPorResidenteEn = new Date().toISOString();
+  // Mostrar spinner o estado de carga
+  S.err = "Guardando...";
+  render();
 
-  apartments[id] = rec;
-  await saveApartments(apartments);
-  S.apartments = apartments;
-  S.savedApartmentNumero = rec.numero;
+  // Enviar al backend
+  const result = await saveToBackend(id, dataToSend);
+  
+  if (!result.ok) {
+    S.err = result.error || "Error al guardar los datos. Intenta de nuevo.";
+    render(); return;
+  }
+
+  // Éxito
+  const apartments = await loadApartments();
+  S.savedApartmentNumero = apartments[id]?.numero || id;
   S.step = "success";
   render();
 }
