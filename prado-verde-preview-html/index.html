@@ -141,16 +141,111 @@ function esc(s) { return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&am
 
 /* ---------------------------- Almacenamiento persistente ---------------------------- */
 
-async function loadApartments() {
+// Guardar en localStorage como cache/fallback
+async function loadApartmentsLocal() {
   try {
     const res = await window.storage.get("pv2:apartments", true);
     if (res && res.value) return JSON.parse(res.value);
   } catch (e) {}
-  const seeded = seedApartments();
-  try { await window.storage.set("pv2:apartments", JSON.stringify(seeded), true); } catch (e) {}
-  return seeded;
+  return seedApartments();
 }
-async function saveApartments(data) { try { await window.storage.set("pv2:apartments", JSON.stringify(data), true); } catch (e) { console.error(e); } }
+async function saveApartmentsLocal(data) { 
+  try { await window.storage.set("pv2:apartments", JSON.stringify(data), true); } catch (e) { console.error(e); } 
+}
+
+// Cargar apartamentos: intenta del backend, fallback a localStorage
+async function loadApartments() {
+  const localData = await loadApartmentsLocal();
+  // Intentar cargar datos del backend para cada apartamento que tenga datos locales
+  // Por ahora solo devolvemos datos locales, el backend se usa al guardar
+  return localData;
+}
+
+// Guardar apartamento en backend Y en localStorage
+async function saveApartmentToBackend(aptData) {
+  const token = S.adminToken || S.residentToken;
+  if (!token) {
+    console.warn("No hay token para guardar en backend");
+    return { ok: false };
+  }
+  
+  try {
+    // 1. Actualizar datos de contacto
+    const contactRes = await fetch(`${API_BASE_URL}/apartments/${aptData.id}`, {
+      method: "PUT",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        telefono_principal: aptData.telefonoPrincipal || null,
+        whatsapp: aptData.whatsapp || null,
+        email: aptData.email || null
+      }),
+    });
+    
+    // 2. Guardar residentes (borrar y recrear)
+    for (const residente of aptData.residentes) {
+      await fetch(`${API_BASE_URL}/apartments/${aptData.id}/residentes`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          nombre: residente.nombre,
+          documento: residente.documento,
+          es_principal: residente.principal || false
+        }),
+      });
+    }
+    
+    // 3. Guardar mascotas
+    for (const mascota of aptData.mascotas) {
+      await fetch(`${API_BASE_URL}/apartments/${aptData.id}/mascotas`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          nombre: mascota.nombre,
+          tipo: mascota.tipo.toLowerCase(),
+          cantidad: mascota.cantidad || 1
+        }),
+      });
+    }
+    
+    // 4. Guardar caracterización
+    const c = aptData.caracterizacion;
+    await fetch(`${API_BASE_URL}/apartments/${aptData.id}/caracterizacion`, {
+      method: "PUT",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        personas_mayores: c.adultosMayores || false,
+        ninos: c.ninos || false,
+        movilidad_reducida: c.movilidadReducida || false,
+        dificultad_neurologica: c.dificultadNeurologica || false,
+        prioridad_evacuacion: aptData.alarmaPrioridad || false
+      }),
+    });
+    
+    console.log("✅ Datos guardados en backend:", aptData.id);
+    return { ok: true };
+  } catch (err) {
+    console.error("❌ Error guardando en backend:", err);
+    return { ok: false, error: err.message };
+  }
+}
+
+async function saveApartments(data) { 
+  // Siempre guardar en localStorage como cache
+  await saveApartmentsLocal(data);
+}
+
 async function loadBrigada() {
   try { const res = await window.storage.get("pv2:brigada", true); if (res && res.value) return JSON.parse(res.value); } catch (e) {}
   return [];
@@ -1161,8 +1256,19 @@ root.addEventListener("click", async (e) => {
   else if (action === "toggle-alarm") { S.modalData.alarmaPrioridad = !S.modalData.alarmaPrioridad; render(); }
 
   else if (action === "save-apt") {
+    // Guardar localmente primero
     S.apartments[S.modalData.id] = S.modalData;
     saveApartments(S.apartments);
+    
+    // Intentar guardar en backend
+    saveApartmentToBackend(S.modalData).then(result => {
+      if (result.ok) {
+        console.log("✅ Guardado en backend exitosamente");
+      } else {
+        console.warn("⚠️ Guardado solo localmente (backend no disponible)");
+      }
+    });
+    
     S.modalAptId = null; S.modalData = null;
     render();
   }

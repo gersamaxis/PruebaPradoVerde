@@ -44,11 +44,44 @@ END $$;
 CREATE TABLE IF NOT EXISTS codigos_otp (
     id SERIAL PRIMARY KEY,
     apartamento_id INTEGER REFERENCES apartamentos(id),
-    codigo VARCHAR(6) NOT NULL,
-    telefono_destino VARCHAR(20) NOT NULL,
-    ip_solicitante VARCHAR(45),
+    codigo_hash VARCHAR(255) NOT NULL,
+    telefono_destino VARCHAR(100) NOT NULL,
+    ip_solicitud VARCHAR(45),
     usado BOOLEAN DEFAULT FALSE,
     expira_en TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabla de residentes
+CREATE TABLE IF NOT EXISTS residentes (
+    id SERIAL PRIMARY KEY,
+    apartamento_id INTEGER REFERENCES apartamentos(id) ON DELETE CASCADE,
+    nombre VARCHAR(100) NOT NULL,
+    documento VARCHAR(20) NOT NULL,
+    es_principal BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(apartamento_id, documento)
+);
+
+-- Tabla de mascotas
+CREATE TABLE IF NOT EXISTS mascotas (
+    id SERIAL PRIMARY KEY,
+    apartamento_id INTEGER REFERENCES apartamentos(id) ON DELETE CASCADE,
+    nombre VARCHAR(50) NOT NULL,
+    tipo VARCHAR(20) NOT NULL CHECK (tipo IN ('canino', 'felino', 'ave', 'otro')),
+    cantidad INTEGER DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabla de caracterización de apartamentos
+CREATE TABLE IF NOT EXISTS caracterizacion_apartamentos (
+    id SERIAL PRIMARY KEY,
+    apartamento_id INTEGER UNIQUE REFERENCES apartamentos(id) ON DELETE CASCADE,
+    personas_mayores BOOLEAN DEFAULT FALSE,
+    ninos BOOLEAN DEFAULT FALSE,
+    movilidad_reducida BOOLEAN DEFAULT FALSE,
+    dificultad_neurologica BOOLEAN DEFAULT FALSE,
+    prioridad_evacuacion BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
