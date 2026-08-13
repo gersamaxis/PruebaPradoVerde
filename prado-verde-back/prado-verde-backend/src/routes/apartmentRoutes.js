@@ -157,6 +157,35 @@ router.post("/:identificador/residentes", requireAuth(), async (req, res) => {
 });
 
 /* =====================================================================
+   ELIMINAR TODOS LOS RESIDENTES DE UN APARTAMENTO
+   DELETE /api/apartments/:identificador/residentes/clear
+===================================================================== */
+router.delete("/:identificador/residentes/clear", requireAuth(), async (req, res) => {
+  try {
+    const { identificador } = req.params;
+    
+    if (!puedeModificar(req.user, identificador)) {
+      return res.status(403).json({ ok: false, error: "No tienes permiso para modificar este apartamento." });
+    }
+
+    const apto = await pool.query(
+      `SELECT id FROM apartamentos WHERE identificador = $1`,
+      [identificador]
+    );
+    if (apto.rows.length === 0) {
+      return res.status(404).json({ ok: false, error: "Apartamento no encontrado." });
+    }
+
+    await pool.query(`DELETE FROM residentes WHERE apartamento_id = $1`, [apto.rows[0].id]);
+
+    return res.json({ ok: true, message: "Todos los residentes eliminados." });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ ok: false, error: "Error interno al eliminar residentes." });
+  }
+});
+
+/* =====================================================================
    ELIMINAR RESIDENTE
    DELETE /api/apartments/:identificador/residentes/:id
 ===================================================================== */
@@ -219,6 +248,35 @@ router.post("/:identificador/mascotas", requireAuth(), async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ ok: false, error: "Error interno al guardar la mascota." });
+  }
+});
+
+/* =====================================================================
+   ELIMINAR TODAS LAS MASCOTAS DE UN APARTAMENTO
+   DELETE /api/apartments/:identificador/mascotas/clear
+===================================================================== */
+router.delete("/:identificador/mascotas/clear", requireAuth(), async (req, res) => {
+  try {
+    const { identificador } = req.params;
+    
+    if (!puedeModificar(req.user, identificador)) {
+      return res.status(403).json({ ok: false, error: "No tienes permiso para modificar este apartamento." });
+    }
+
+    const apto = await pool.query(
+      `SELECT id FROM apartamentos WHERE identificador = $1`,
+      [identificador]
+    );
+    if (apto.rows.length === 0) {
+      return res.status(404).json({ ok: false, error: "Apartamento no encontrado." });
+    }
+
+    await pool.query(`DELETE FROM mascotas WHERE apartamento_id = $1`, [apto.rows[0].id]);
+
+    return res.json({ ok: true, message: "Todas las mascotas eliminadas." });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ ok: false, error: "Error interno al eliminar mascotas." });
   }
 });
 
