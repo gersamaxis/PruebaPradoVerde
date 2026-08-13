@@ -14,9 +14,9 @@ const pool = new Pool({
   ssl: isLocalhost ? false : { rejectUnauthorized: false },
 });
 
-// Todas las tablas viven en el esquema administradores
-pool.on("connect", (client) => {
-  client.query("SET search_path TO administradores");
+// Log de conexión exitosa
+pool.on("connect", () => {
+  console.log("✅ Conectado a PostgreSQL");
 });
 
 module.exports = { pool };
