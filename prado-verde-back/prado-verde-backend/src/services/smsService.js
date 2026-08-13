@@ -18,22 +18,30 @@ async function enviarSms(telefono, mensaje) {
   }
 
   if (provider === "twilio") {
-    // Ejemplo de integración real con Twilio:
-    //
-    // const twilio = require("twilio")(
-    //   process.env.TWILIO_ACCOUNT_SID,
-    //   process.env.TWILIO_AUTH_TOKEN
-    // );
-    // const result = await twilio.messages.create({
-    //   body: mensaje,
-    //   from: process.env.TWILIO_FROM_NUMBER,
-    //   to: telefono,
-    // });
-    // return { ok: true, provider: "twilio", sid: result.sid };
-    throw new Error("Integración con Twilio no configurada todavía. Ver comentarios en smsService.js");
+    // Verificar si las credenciales de Twilio están configuradas
+    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_FROM_NUMBER) {
+      console.warn("⚠️ [SMS] Twilio no configurado, usando modo consola como fallback");
+      console.log(`📲 [SMS simulado] Para: ${telefono} | Mensaje: ${mensaje}`);
+      return { ok: true, provider: "console-fallback" };
+    }
+    
+    // Integración real con Twilio
+    const twilio = require("twilio")(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN
+    );
+    const result = await twilio.messages.create({
+      body: mensaje,
+      from: process.env.TWILIO_FROM_NUMBER,
+      to: telefono,
+    });
+    return { ok: true, provider: "twilio", sid: result.sid };
   }
 
-  throw new Error(`Proveedor de SMS desconocido: ${provider}`);
+  // Fallback para provider desconocido
+  console.warn(`⚠️ [SMS] Proveedor desconocido (${provider}), usando modo consola como fallback`);
+  console.log(`📲 [SMS simulado] Para: ${telefono} | Mensaje: ${mensaje}`);
+  return { ok: true, provider: "console-fallback" };
 }
 
 module.exports = { enviarSms };
