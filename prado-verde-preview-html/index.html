@@ -156,9 +156,55 @@ async function saveApartmentsLocal(data) {
 // Cargar apartamentos: intenta del backend, fallback a localStorage
 async function loadApartments() {
   const localData = await loadApartmentsLocal();
-  // Intentar cargar datos del backend para cada apartamento que tenga datos locales
-  // Por ahora solo devolvemos datos locales, el backend se usa al guardar
   return localData;
+}
+
+// Cargar datos de un apartamento específico desde el backend
+async function loadApartmentFromBackend(identificador) {
+  const token = S.adminToken || S.residentToken;
+  if (!token) return null;
+  
+  try {
+    const res = await fetch(`${API_BASE_URL}/apartments/${identificador}`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    if (!res.ok) return null;
+    
+    const data = await res.json();
+    if (!data.ok) return null;
+    
+    // Convertir formato backend a formato frontend
+    const apt = data.apartamento;
+    return {
+      id: apt.identificador,
+      identificador: apt.identificador,
+      telefonoPrincipal: apt.telefono_principal || "",
+      whatsapp: apt.whatsapp || "",
+      email: apt.email || "",
+      residentes: (data.residentes || []).map(r => ({
+        nombre: r.nombre,
+        documento: r.documento,
+        principal: r.es_principal
+      })),
+      mascotas: (data.mascotas || []).map(m => ({
+        nombre: m.nombre,
+        tipo: m.tipo.charAt(0).toUpperCase() + m.tipo.slice(1),
+        cantidad: m.cantidad || 1
+      })),
+      caracterizacion: data.caracterizacion ? {
+        adultosMayores: data.caracterizacion.personas_mayores,
+        ninos: data.caracterizacion.ninos,
+        movilidadReducida: data.caracterizacion.movilidad_reducida,
+        dificultadNeurologica: data.caracterizacion.dificultad_neurologica,
+        otras: ""
+      } : { adultosMayores: false, ninos: false, movilidadReducida: false, dificultadNeurologica: false, otras: "" },
+      alarmaPrioridad: data.caracterizacion?.prioridad_evacuacion || false,
+      notaAdmin: "",
+    };
+  } catch (err) {
+    console.error("Error cargando apartamento del backend:", err);
+    return null;
+  }
 }
 
 // Guardar apartamento en backend Y en localStorage
@@ -184,7 +230,17 @@ async function saveApartmentToBackend(aptData) {
       }),
     });
     
-    // 2. Guardar residentes (borrar y recrear)
+    if (!contactRes.ok) {
+      const err = await contactRes.json();
+      console.error("Error actualizando contacto:", err);
+    }
+    
+    // 2. Limpiar residentes existentes y agregar nuevos
+    await fetch(`${API_BASE_URL}/apartments/${aptData.id}/residentes/clear`, {
+      method: "DELETE",
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    
     for (const residente of aptData.residentes) {
       await fetch(`${API_BASE_URL}/apartments/${aptData.id}/residentes`, {
         method: "POST",
@@ -200,7 +256,12 @@ async function saveApartmentToBackend(aptData) {
       });
     }
     
-    // 3. Guardar mascotas
+    // 3. Limpiar mascotas existentes y agregar nuevas
+    await fetch(`${API_BASE_URL}/apartments/${aptData.id}/mascotas/clear`, {
+      method: "DELETE",
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    
     for (const mascota of aptData.mascotas) {
       await fetch(`${API_BASE_URL}/apartments/${aptData.id}/mascotas`, {
         method: "POST",
@@ -1199,11 +1260,33 @@ root.addEventListener("click", async (e) => {
   }
 
   else if (action === "open-apt") {
-    S.modalAptId = btn.dataset.id;
+    const aptId = btn.dataset.id;
+    S.modalAptId = aptId;
     S.modalIsAdmin = btn.dataset.isadmin === "1";
-    S.modalData = JSON.parse(JSON.stringify(S.apartments[btn.dataset.id]));
     S.newRes = { nombre: "", documento: "" };
     S.newPet = { nombre: "", tipo: "Canino", cantidad: 1 };
+    
+    // Intentar cargar datos del backend primero
+    const backendData = await loadApartmentFromBackend(aptId);
+    if (backendData) {
+      // Merge con datos locales (mantener torre, piso, numero)
+      const localApt = S.apartments[aptId];
+      S.modalData = {
+        ...localApt,
+        telefonoPrincipal: backendData.telefonoPrincipal || localApt.telefonoPrincipal,
+        whatsapp: backendData.whatsapp || localApt.whatsapp,
+        email: backendData.email || localApt.email,
+        residentes: backendData.residentes.length > 0 ? backendData.residentes : localApt.residentes,
+        mascotas: backendData.mascotas.length > 0 ? backendData.mascotas : localApt.mascotas,
+        caracterizacion: backendData.caracterizacion.adultosMayores !== undefined ? backendData.caracterizacion : localApt.caracterizacion,
+        alarmaPrioridad: backendData.alarmaPrioridad || localApt.alarmaPrioridad,
+      };
+      // Actualizar también el cache local
+      S.apartments[aptId] = { ...S.apartments[aptId], ...S.modalData };
+      saveApartmentsLocal(S.apartments);
+    } else {
+      S.modalData = JSON.parse(JSON.stringify(S.apartments[aptId]));
+    }
     render();
   }
   else if (action === "close-modal") { S.modalAptId = null; S.modalData = null; render(); }
