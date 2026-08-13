@@ -1,4 +1,4 @@
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const { pool } = require("../db");
 
 const OTP_EXP_MINUTES = Number(process.env.OTP_EXP_MINUTES || 5);

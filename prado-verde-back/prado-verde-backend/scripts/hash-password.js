@@ -6,7 +6,7 @@
  * Uso:
  *   node scripts/hash-password.js "miContraseñaSegura"
  */
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 
 const password = process.argv[2];
 if (!password) {
