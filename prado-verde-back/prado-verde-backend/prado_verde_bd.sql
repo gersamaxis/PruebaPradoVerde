@@ -1,10 +1,10 @@
 -- =====================================================
 -- PRADO VERDE - Base de Datos
--- Ejecutar este script en pgAdmin 4
+-- Ejecutar este script en pgAdmin 4 o en Render
 -- =====================================================
 
--- Usar el esquema administradores
-SET search_path TO administradores;
+-- Usar esquema public (por defecto en PostgreSQL)
+-- SET search_path TO public;
 
 -- Tabla de administradores
 CREATE TABLE IF NOT EXISTS administradores (
