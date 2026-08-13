@@ -14,6 +14,18 @@ function identificadorApto(torre, piso, apto) {
   return `T${torre}-${pisoStr}${apto}`;
 }
 
+function maskPhone(phone) {
+  if (!phone || phone.length < 4) return null;
+  return "••• ••• " + phone.slice(-4);
+}
+
+function maskEmail(email) {
+  if (!email || !email.includes("@")) return null;
+  const [local, domain] = email.split("@");
+  const masked = local.length > 2 ? local[0] + "•••" + local.slice(-1) : "•••";
+  return masked + "@" + domain;
+}
+
 function firmarTokenAdmin(admin) {
   return jwt.sign(
     { sub: admin.id, usuario: admin.usuario, rol: admin.rol, tipo: "admin" },
@@ -67,6 +79,49 @@ router.post("/admin/login", async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ ok: false, error: "Error interno al iniciar sesión." });
+  }
+});
+
+/* =====================================================================
+   OBTENER MÉTODOS DE CONTACTO DISPONIBLES (PÚBLICO)
+   GET /api/auth/resident/contact-methods?torre=1&piso=1&apto=01
+   Devuelve qué métodos de contacto tiene configurado el apartamento
+   (datos enmascarados, no requiere autenticación)
+===================================================================== */
+router.get("/resident/contact-methods", async (req, res) => {
+  try {
+    const { torre, piso, apto } = req.query;
+    if (!torre || !piso || !apto) {
+      return res.status(400).json({ ok: false, error: "Torre, piso y apartamento son obligatorios." });
+    }
+
+    const identificador = identificadorApto(torre, piso, apto);
+    const { rows } = await pool.query(
+      `SELECT telefono_principal, whatsapp, email FROM apartamentos WHERE identificador = $1`,
+      [identificador]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ ok: false, error: "Apartamento no encontrado." });
+    }
+
+    const apt = rows[0];
+    const methods = [];
+    
+    if (apt.telefono_principal) {
+      methods.push({ method: "sms", label: "SMS", masked: maskPhone(apt.telefono_principal) });
+    }
+    if (apt.whatsapp) {
+      methods.push({ method: "whatsapp", label: "WhatsApp", masked: maskPhone(apt.whatsapp) });
+    }
+    if (apt.email) {
+      methods.push({ method: "email", label: "Correo electrónico", masked: maskEmail(apt.email) });
+    }
+
+    return res.json({ ok: true, methods });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ ok: false, error: "Error interno." });
   }
 });
 
