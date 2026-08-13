@@ -22,8 +22,23 @@ CREATE TABLE IF NOT EXISTS apartamentos (
     id SERIAL PRIMARY KEY,
     identificador VARCHAR(20) UNIQUE NOT NULL, -- Ej: T1-0101, T2-1806
     telefono_principal VARCHAR(20),
+    whatsapp VARCHAR(20),
+    email VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Agregar columnas si ya existe la tabla (migracion)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name='apartamentos' AND column_name='whatsapp') THEN
+        ALTER TABLE apartamentos ADD COLUMN whatsapp VARCHAR(20);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                   WHERE table_name='apartamentos' AND column_name='email') THEN
+        ALTER TABLE apartamentos ADD COLUMN email VARCHAR(100);
+    END IF;
+END $$;
 
 -- Tabla de códigos OTP
 CREATE TABLE IF NOT EXISTS codigos_otp (

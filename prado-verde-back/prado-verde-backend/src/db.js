@@ -4,12 +4,14 @@ if (!process.env.DATABASE_URL) {
   console.warn("⚠️  DATABASE_URL no está definida. Copia .env.example a .env y complétala.");
 }
 
-// Configuración SSL para producción (Render, Railway, etc.)
-const isProduction = process.env.NODE_ENV === "production";
+// SSL requerido para bases de datos en la nube (Render, Railway, Supabase, etc.)
+// Solo desactivar SSL para localhost
+const dbUrl = process.env.DATABASE_URL || "";
+const isLocalhost = dbUrl.includes("localhost") || dbUrl.includes("127.0.0.1");
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: isProduction ? { rejectUnauthorized: false } : false,
+  ssl: isLocalhost ? false : { rejectUnauthorized: false },
 });
 
 // Todas las tablas viven en el esquema administradores
