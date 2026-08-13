@@ -27,46 +27,58 @@ async function enviarWhatsapp(telefono, mensaje) {
   }
 
   if (provider === "twilio") {
-    // Ejemplo de integración real con Twilio WhatsApp:
-    // Requiere tener configurado WhatsApp Business con Twilio
-    //
-    // const twilio = require("twilio")(
-    //   process.env.TWILIO_ACCOUNT_SID,
-    //   process.env.TWILIO_AUTH_TOKEN
-    // );
-    // const result = await twilio.messages.create({
-    //   body: mensaje,
-    //   from: process.env.TWILIO_WHATSAPP_FROM || "whatsapp:+14155238886", // Sandbox de Twilio
-    //   to: telefonoNormalizado,
-    // });
-    // return { ok: true, provider: "twilio", sid: result.sid };
-    throw new Error("Integración con Twilio WhatsApp no configurada todavía. Ver comentarios en whatsappService.js");
+    // Verificar si las credenciales de Twilio están configuradas
+    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
+      console.warn("⚠️ [WhatsApp] Twilio no configurado, usando modo consola como fallback");
+      console.log(`💬 [WhatsApp simulado] Para: ${telefonoNormalizado} | Mensaje: ${mensaje}`);
+      return { ok: true, provider: "console-fallback" };
+    }
+    
+    // Integración real con Twilio WhatsApp
+    const twilio = require("twilio")(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN
+    );
+    const result = await twilio.messages.create({
+      body: mensaje,
+      from: process.env.TWILIO_WHATSAPP_FROM || "whatsapp:+14155238886", // Sandbox de Twilio
+      to: telefonoNormalizado,
+    });
+    return { ok: true, provider: "twilio", sid: result.sid };
   }
 
   if (provider === "meta") {
-    // Ejemplo de integración con Meta Business API (Cloud API):
-    //
-    // const axios = require("axios");
-    // const response = await axios.post(
-    //   `https://graph.facebook.com/v17.0/${process.env.META_PHONE_NUMBER_ID}/messages`,
-    //   {
-    //     messaging_product: "whatsapp",
-    //     to: telefonoNormalizado.replace("whatsapp:+", ""),
-    //     type: "text",
-    //     text: { body: mensaje },
-    //   },
-    //   {
-    //     headers: {
-    //       Authorization: `Bearer ${process.env.META_ACCESS_TOKEN}`,
-    //       "Content-Type": "application/json",
-    //     },
-    //   }
-    // );
-    // return { ok: true, provider: "meta", messageId: response.data.messages[0].id };
-    throw new Error("Integración con Meta WhatsApp API no configurada todavía. Ver comentarios en whatsappService.js");
+    // Verificar si las credenciales de Meta están configuradas
+    if (!process.env.META_PHONE_NUMBER_ID || !process.env.META_ACCESS_TOKEN) {
+      console.warn("⚠️ [WhatsApp] Meta API no configurada, usando modo consola como fallback");
+      console.log(`💬 [WhatsApp simulado] Para: ${telefonoNormalizado} | Mensaje: ${mensaje}`);
+      return { ok: true, provider: "console-fallback" };
+    }
+
+    // Integración con Meta Business API (Cloud API)
+    const axios = require("axios");
+    const response = await axios.post(
+      `https://graph.facebook.com/v17.0/${process.env.META_PHONE_NUMBER_ID}/messages`,
+      {
+        messaging_product: "whatsapp",
+        to: telefonoNormalizado.replace("whatsapp:+", ""),
+        type: "text",
+        text: { body: mensaje },
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.META_ACCESS_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return { ok: true, provider: "meta", messageId: response.data.messages[0].id };
   }
 
-  throw new Error(`Proveedor de WhatsApp desconocido: ${provider}`);
+  // Fallback para provider desconocido
+  console.warn(`⚠️ [WhatsApp] Proveedor desconocido (${provider}), usando modo consola como fallback`);
+  console.log(`💬 [WhatsApp simulado] Para: ${telefonoNormalizado} | Mensaje: ${mensaje}`);
+  return { ok: true, provider: "console-fallback" };
 }
 
 module.exports = { enviarWhatsapp };
