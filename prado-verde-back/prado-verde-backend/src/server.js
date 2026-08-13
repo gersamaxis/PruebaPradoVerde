@@ -1,7 +1,6 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const path = require("path");
 
 const authRoutes = require("./routes/authRoutes");
 const { requireAuth } = require("./middleware/authMiddleware");
@@ -10,9 +9,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Servir el archivo HTML principal en la raíz
+// Ruta raíz - información de la API
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "../../../prado-verde-preview.html"));
+  res.json({
+    ok: true,
+    service: "prado-verde-backend",
+    version: "1.0.0",
+    endpoints: {
+      health: "/api/health",
+      adminLogin: "POST /api/auth/admin/login",
+      residentRequestCode: "POST /api/auth/resident/request-code",
+      residentVerifyCode: "POST /api/auth/resident/verify-code"
+    }
+  });
 });
 
 app.get("/api/health", (req, res) => res.json({ ok: true, service: "prado-verde-backend" }));
