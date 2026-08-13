@@ -323,6 +323,21 @@ async function saveApartments(data) {
   await saveApartmentsLocal(data);
 }
 
+// Cargar métodos de contacto disponibles desde el backend (público)
+async function loadContactMethods(torre, piso, apto) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/resident/contact-methods?torre=${torre}&piso=${piso}&apto=${apto}`);
+    const data = await res.json();
+    if (data.ok) {
+      return data.methods || [];
+    }
+    return [];
+  } catch (err) {
+    console.error("Error cargando métodos de contacto:", err);
+    return [];
+  }
+}
+
 async function loadBrigada() {
   try { const res = await window.storage.get("pv2:brigada", true); if (res && res.value) return JSON.parse(res.value); } catch (e) {}
   return [];
@@ -420,6 +435,7 @@ const S = {
   residentStep: 1, residentTorre: 1, residentPiso: 1, residentApto: "01",
   residentOtp: null, residentOtpInput: "", residentDemoBanner: "", residentErr: "",
   residentAptId: null, residentToken: null,
+  residentContactMethods: [], loadingContactMethods: false,
 
   adminTab: "resumen", adminQuery: "",
   selectorTorre: null, selectorPiso: null,
@@ -534,45 +550,34 @@ function viewResidentLogin() {
   const id = aptoId(S.residentTorre, S.residentPiso, S.residentApto);
   const record = S.apartments[id];
   
-  // Determinar métodos de contacto disponibles (vienen del backend/registro)
-  const hasSms = !!record.telefonoPrincipal;
-  const hasWhatsapp = !!record.whatsapp;
-  const hasEmail = !!record.email;
-  const hasAnyContact = hasSms || hasWhatsapp || hasEmail;
+  // Los métodos de contacto se cargan dinámicamente del backend
+  // S.residentContactMethods se actualiza cuando cambia el apartamento seleccionado
+  const methods = S.residentContactMethods || [];
+  const hasAnyContact = methods.length > 0;
+  const loadingMethods = S.loadingContactMethods;
   
   let body = "";
   if (S.residentStep === 1) {
     // Construir opciones de envío disponibles
     let contactOptions = "";
-    if (hasAnyContact) {
+    if (loadingMethods) {
+      contactOptions = `
+        <div style="margin-top:16px;text-align:center;padding:20px;">
+          <p style="color:var(--muted);font-size:13px;">Cargando métodos de contacto...</p>
+        </div>`;
+    } else if (hasAnyContact) {
       contactOptions = `
         <div style="margin-top:16px;">
           <p class="label" style="margin-bottom:8px;">Enviar código de acceso por:</p>
           <div style="display:flex;flex-direction:column;gap:8px;">
-            ${hasSms ? `
-              <button data-action="resident-request-code" data-method="sms" class="toggle-btn" style="justify-content:flex-start;">
-                ${icon("phone", 16)}
+            ${methods.map(m => `
+              <button data-action="resident-request-code" data-method="${m.method}" class="toggle-btn" style="justify-content:flex-start;">
+                ${icon(m.method === 'sms' ? 'phone' : m.method === 'whatsapp' ? 'whatsapp' : 'mail', 16)}
                 <div class="flex-1" style="text-align:left;">
-                  <span style="font-weight:600;">SMS</span>
-                  <span style="color:var(--muted2);font-size:11px;margin-left:8px;">${maskPhone(record.telefonoPrincipal)}</span>
+                  <span style="font-weight:600;">${esc(m.label)}</span>
+                  <span style="color:var(--muted2);font-size:11px;margin-left:8px;">${esc(m.masked)}</span>
                 </div>
-              </button>` : ""}
-            ${hasWhatsapp ? `
-              <button data-action="resident-request-code" data-method="whatsapp" class="toggle-btn" style="justify-content:flex-start;">
-                ${icon("whatsapp", 16)}
-                <div class="flex-1" style="text-align:left;">
-                  <span style="font-weight:600;">WhatsApp</span>
-                  <span style="color:var(--muted2);font-size:11px;margin-left:8px;">${maskPhone(record.whatsapp)}</span>
-                </div>
-              </button>` : ""}
-            ${hasEmail ? `
-              <button data-action="resident-request-code" data-method="email" class="toggle-btn" style="justify-content:flex-start;">
-                ${icon("mail", 16)}
-                <div class="flex-1" style="text-align:left;">
-                  <span style="font-weight:600;">Correo electrónico</span>
-                  <span style="color:var(--muted2);font-size:11px;margin-left:8px;">${maskEmail(record.email)}</span>
-                </div>
-              </button>` : ""}
+              </button>`).join("")}
           </div>
         </div>`;
     } else {
@@ -608,6 +613,11 @@ function viewResidentLogin() {
       ${contactOptions}
       ${S.backendModo === false ? `<div style="background:var(--amber-bg);border:1px solid var(--amber-bd);color:var(--amber-tx);font-size:12px;border-radius:14px;padding:10px 12px;margin-top:14px;line-height:1.5;">${icon("alerttriangle", 13)} Backend no disponible en <span class="font-mono">${API_BASE_URL}</span> — usando modo demo local (el código se muestra en pantalla).</div>` : ""}
       ${S.backendModo === true ? `<div class="flex items-center gap-1" style="margin-top:14px;"><span style="color:var(--leaf);">●</span><p style="font-size:12px;color:var(--muted);margin:0;">Conectado al backend de login</p></div>` : ""}
+      
+      <div style="border-top:1px solid var(--border2);margin:20px 0 16px;"></div>
+      <a href="prado-verde-formulario-residentes.html" class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--pale);border:1px solid var(--border3);color:var(--forest);text-decoration:none;">
+        ${icon("userplus", 16)} Registrarse
+      </a>
     `;
   } else {
     body = `
@@ -1128,12 +1138,24 @@ root.addEventListener("input", (e) => {
   }
 });
 
-root.addEventListener("change", (e) => {
+root.addEventListener("change", async (e) => {
   const el = e.target;
   if (el.dataset.bind) {
     let val = el.value;
     if (el.tagName === "SELECT" && !isNaN(Number(val)) && ["residentTorre", "residentPiso"].includes(el.dataset.bind)) val = Number(val);
     setDeep(S, el.dataset.bind, val);
+    
+    // Si cambió el apartamento seleccionado en login de residentes, cargar métodos de contacto
+    if (["residentTorre", "residentPiso", "residentApto"].includes(el.dataset.bind)) {
+      S.loadingContactMethods = true;
+      S.residentContactMethods = [];
+      render();
+      
+      const methods = await loadContactMethods(S.residentTorre, S.residentPiso, S.residentApto);
+      S.residentContactMethods = methods;
+      S.loadingContactMethods = false;
+    }
+    
     render();
   }
 });
@@ -1194,7 +1216,27 @@ root.addEventListener("click", async (e) => {
   if (!btn) return;
   const action = btn.dataset.action;
 
-  if (action === "goto") { S.view = btn.dataset.view; S.adminErr = ""; S.residentErr = ""; render(); }
+  if (action === "goto") { 
+    S.view = btn.dataset.view; 
+    S.adminErr = ""; 
+    S.residentErr = ""; 
+    
+    // Si va a login de residentes, cargar métodos de contacto del apartamento por defecto
+    if (btn.dataset.view === "resident-login") {
+      S.loadingContactMethods = true;
+      S.residentContactMethods = [];
+      render();
+      
+      loadContactMethods(S.residentTorre, S.residentPiso, S.residentApto).then(methods => {
+        S.residentContactMethods = methods;
+        S.loadingContactMethods = false;
+        render();
+      });
+      return;
+    }
+    
+    render(); 
+  }
 
   else if (action === "logout") {
     S.view = "landing"; S.residentAptId = null; S.modalAptId = null; S.adminToken = null; S.residentToken = null;

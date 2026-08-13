@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Prado Verde · Registro de datos del apartamento</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap');
+  :root{
+    --forest:#1B4332; --leaf:#2D6A4F; --mint:#74C69D; --pale:#F1FAF5; --white:#FFFFFF;
+    --amber:#E8A33D; --amber-bg:#FDF1DF; --amber-bd:#F3D9A6; --amber-tx:#8A5A17;
+    --coral:#E0574C; --coral-bg:#FBE7E5; --coral-bd:#F3BDB6;
+    --leaf-bg:#E6F4EC; --leaf-bd:#BEE3CC;
+    --ink:#33473C; --ink-bg:#EEF3F0; --ink-bd:#D8E3DC;
+    --border:#DCEEE2; --border2:#E4EFE8; --border3:#CFE6D8;
+    --muted:#5B7A6A; --muted2:#7C9789; --muted3:#8AA598;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Inter',sans-serif;background:var(--pale);color:var(--ink);}
+  .font-display{font-family:'Baloo 2','Inter',sans-serif;}
+  .font-mono{font-family:'JetBrains Mono',monospace;}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;padding:0;color:inherit;}
+  input,select,textarea{font-family:inherit;font-size:16px;} /* 16px evita zoom automático en iOS */
+  .screen{min-height:100vh;}
+  .wrap{max-width:460px;margin:0 auto;padding:0 20px 48px;}
+  .flex{display:flex;} .items-center{align-items:center;} .items-start{align-items:flex-start;}
+  .justify-between{justify-content:space-between;} .justify-center{justify-content:center;}
+  .flex-col{flex-direction:column;} .flex-1{flex:1;min-width:0;} .flex-wrap{flex-wrap:wrap;}
+  .gap-1{gap:4px;} .gap-2{gap:8px;} .gap-3{gap:12px;}
+  .g2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+  .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .icon{display:inline-block;vertical-align:middle;flex-shrink:0;}
+  .card{background:#fff;border:1px solid var(--border2);border-radius:20px;padding:18px;}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;border-radius:14px;padding:14px;font-size:15px;font-weight:700;width:100%;}
+  .btn-dark{background:var(--forest);color:#fff;}
+  .btn-outline{background:#fff;color:var(--forest);border:1.5px solid var(--border3);}
+  .btn-sm{padding:8px 14px;font-size:13px;border-radius:12px;width:auto;}
+  .input,.select,textarea.input{width:100%;border:1px solid var(--border3);background:#fff;border-radius:12px;padding:11px 13px;font-size:15px;outline:none;}
+  .input:focus,.select:focus,textarea:focus{border-color:var(--leaf);}
+  .label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;display:block;margin-bottom:5px;}
+  .err{font-size:12px;color:#C0392B;font-weight:600;}
+  .section-title{font-size:13px;font-weight:700;color:var(--forest);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+  .person-card{background:var(--pale);border:1px solid var(--border2);border-radius:16px;padding:14px;margin-bottom:10px;}
+  .toggle-btn{display:flex;align-items:center;gap:8px;border-radius:14px;border:1px solid var(--border3);background:#fff;color:var(--ink);padding:10px 12px;font-size:12px;font-weight:600;text-align:left;}
+  .toggle-btn.active{background:var(--leaf);color:#fff;border-color:var(--leaf);}
+  .header-dark{background:var(--forest);padding:36px 20px 26px;border-radius:0 0 28px 28px;text-align:center;}
+  .chip{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid;}
+  .chip-leaf{background:var(--leaf-bg);color:var(--forest);border-color:var(--leaf-bd);}
+  .radio-row{display:flex;align-items:center;gap:8px;cursor:pointer;}
+  .radio-dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--border3);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .radio-dot.on{border-color:var(--leaf);}
+  .radio-dot.on::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--leaf);}
+  .divider{height:1px;background:var(--border2);margin:18px 0;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+/* ---------------------------------------------------------------
+   PRADO VERDE · Formulario público de registro de datos del apto
+   Sin login — pensado para compartir por SMS / correo / WhatsApp.
+   Escribe directamente en el mismo almacenamiento compartido
+   (pv2:apartments) que usa la app administrativa y de residentes.
+--------------------------------------------------------------- */
+
+const TORRES = [1, 2];
+const PISOS = Array.from({ length: 18 }, (_, i) => i + 1);
+const APTOS_POR_PISO = ["01", "02", "03", "04", "05", "06"];
+
+function aptoId(torre, piso, apto) { return `T${torre}-${String(piso).padStart(2, "0")}${apto}`; }
+function getAptNumero(torre, piso, aptoIndex) {
+  const idx = typeof aptoIndex === 'string' ? parseInt(aptoIndex, 10) - 1 : aptoIndex;
+  return torre === 1 ? String((piso * 100) + 7 + idx) : String((piso * 10) + 3 + idx);
+}
+function esc(s) { return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function uid() { return Date.now() + Math.random().toString(16).slice(2); }
+
+/* ---------------------------- Almacenamiento compartido con la app principal ---------------------------- */
+
+function seedApartments() {
+  const out = {};
+  TORRES.forEach((torre) => PISOS.forEach((piso) => APTOS_POR_PISO.forEach((apto) => {
+    const id = aptoId(torre, piso, apto);
+    out[id] = {
+      id, torre, piso, numero: getAptNumero(torre, piso, apto),
+      telefonoPrincipal: "", whatsappPrincipal: "", correoPrincipal: "",
+      residentes: [], mascotas: [],
+      caracterizacion: { adultosMayores: false, ninos: false, movilidadReducida: false, dificultadNeurologica: false, otras: "" },
+      alarmaPrioridad: false, notaAdmin: "",
+    };
+  })));
+  return out;
+}
+async function loadApartments() {
+  try {
+    const res = await window.storage.get("pv2:apartments", true);
+    if (res && res.value) return JSON.parse(res.value);
+  } catch (e) {}
+  const seeded = seedApartments();
+  try { await window.storage.set("pv2:apartments", JSON.stringify(seeded), true); } catch (e) {}
+  return seeded;
+}
+async function saveApartments(data) { try { await window.storage.set("pv2:apartments", JSON.stringify(data), true); } catch (e) { console.error(e); } }
+
+/* ---------------------------- Íconos ---------------------------- */
+
+const ICONS = {
+  building2: '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18"/><path d="M2 22h20"/><path d="M9 6h1"/><path d="M14 6h1"/><path d="M9 10h1"/><path d="M14 10h1"/><path d="M9 14h1"/><path d="M14 14h1"/>',
+  pawprint: '<circle cx="11" cy="4.5" r="2"/><circle cx="17.5" cy="8.5" r="2"/><circle cx="4.5" cy="9.5" r="2"/><path d="M9 15.5c0-2 1.8-3.5 4-3.5s4 1.9 4 4c0 1.9-1.4 3-3 3-.7 0-1.4-.2-2-.6-.6.4-1.3.6-2 .6-1.6 0-3-1-3-2.8 0-.2 0-.5.1-.7Z"/>',
+  users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  userplus: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/>',
+  trash: '<path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>',
+  phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>',
+  whatsapp: '<path d="M21 11.5a8.5 8.5 0 0 1-11.9 7.8L3 21l1.7-6a8.5 8.5 0 1 1 16.3-3.5Z"/><path d="M8.5 9.5c.3-1 1-1 1.5-1s.8.3 1 .8.5 1.2.2 1.7-1 1-1 1.3 1 1.7 2 2.2 1 .3 1.3-.2.7-.7 1.2-.7 1.7.7 1.7 1.2-.5 1.5-1 1.7c-1.5.7-3.7-.5-5.2-2s-2.7-3.7-2-5.2c.2-.5 1-1 1.5-1Z"/>',
+  mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/>',
+  home: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+  heartpulse: '<path d="M20.4 4.6a5 5 0 0 0-7.1 0L12 5.9l-1.3-1.3a5 5 0 1 0-7.1 7.1L4 12l8 8 8-8a5 5 0 0 0 .4-6.4Z"/><path d="M3.5 12H7l1.5-3 2 5 1.5-3h4.5"/>',
+  baby: '<circle cx="12" cy="6" r="3"/><path d="M15 13a3 3 0 1 1-6 0"/><path d="M12 9v1"/><path d="M6 20c0-3 2-6 6-6s6 3 6 6"/>',
+  accessibility: '<circle cx="12" cy="4" r="1.5"/><path d="M5 9h14"/><path d="M12 9v5"/><path d="m8 20 4-6 4 6"/><path d="M8 13l-2 2"/><path d="M16 13l2 2"/>',
+  brain: '<path d="M9.5 2a3.5 3.5 0 0 0-3.5 3.5V6a3 3 0 0 0-2 5 3 3 0 0 0 1 5.5 3 3 0 0 0 3 3 3.5 3.5 0 0 0 3.5-3.5V5.5A3.5 3.5 0 0 0 9.5 2Z"/><path d="M14.5 2A3.5 3.5 0 0 1 18 5.5V6a3 3 0 0 1 2 5 3 3 0 0 1-1 5.5 3 3 0 0 1-3 3 3.5 3.5 0 0 1-3.5-3.5V5.5A3.5 3.5 0 0 1 14.5 2Z"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  checkcircle: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  chevronleft: '<path d="m15 18-6-6 6-6"/>',
+  plus: '<path d="M12 5v14"/><path d="M5 12h14"/>',
+  shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>',
+  alerttriangle: '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+};
+function icon(name, size, cls) {
+  size = size || 18; cls = cls || "";
+  return `<svg class="icon ${cls}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[name] || ""}</svg>`;
+}
+
+/* ---------------------------- Estado ---------------------------- */
+
+function nuevaPersona(esPrincipal) {
+  return {
+    key: uid(), nombre: "", edad: "", tipoDocumento: "CC", documento: "", principal: !!esPrincipal,
+    celular: "", whatsapp: "", whatsappIgual: true, correo: "",
+  };
+}
+
+const S = {
+  step: "select", // select | form | success
+  apartments: null, loading: true,
+
+  torre: 1, piso: 1, apto: "01",
+  savedApartmentId: null,
+
+  personas: [nuevaPersona(true)],
+  mascotas: [],
+  tieneMascotas: null, // null = sin responder, true/false = respuesta obligatoria
+  caracterizacion: { adultosMayores: false, ninos: false, movilidadReducida: false, dificultadNeurologica: false, otras: "" },
+
+  err: "",
+};
+
+function setDeep(obj, path, value) {
+  const parts = path.split(".");
+  let cur = obj;
+  for (let i = 0; i < parts.length - 1; i++) cur = cur[parts[i]];
+  cur[parts[parts.length - 1]] = value;
+}
+
+/* ---------------------------- Vistas ---------------------------- */
+
+function viewSelect() {
+  const id = aptoId(S.torre, S.piso, S.apto);
+  const existing = S.apartments[id];
+  const yaTieneDatos = existing && existing.residentes.length > 0;
+  return `
+  <div class="screen">
+    <div class="header-dark">
+      <div style="width:56px;height:56px;margin:0 auto 12px;border-radius:20px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;">${icon("home", 26, "")}</div>
+      <h1 class="font-display" style="font-size:24px;color:#fff;margin:0;">Registro de datos</h1>
+      <p style="font-size:13px;color:var(--mint);margin:6px 0 0;">Conjunto Residencial Prado Verde</p>
+    </div>
+    <div class="wrap" style="padding-top:24px;">
+      <p style="font-size:14px;color:var(--muted);line-height:1.6;margin:0 0 20px;">
+        Este formulario alimenta el plan de emergencia del conjunto. Selecciona tu apartamento y registra
+        quiénes lo habitan para que la administración y la brigada puedan actuar mejor en caso de emergencia.
+      </p>
+      <div class="card">
+        <h3 class="section-title">${icon("building2", 15)} Selecciona tu apartamento</h3>
+        <div class="g3">
+          <div>
+            <label class="label">Torre</label>
+            <select class="select" data-bind="torre" data-numeric="1">
+              ${TORRES.map((t) => `<option value="${t}" ${t === S.torre ? "selected" : ""}>Torre ${t}</option>`).join("")}
+            </select>
+          </div>
+          <div>
+            <label class="label">Piso</label>
+            <select class="select" data-bind="piso" data-numeric="1">
+              ${PISOS.map((p) => `<option value="${p}" ${p === S.piso ? "selected" : ""}>${p}</option>`).join("")}
+            </select>
+          </div>
+          <div>
+            <label class="label">Apto</label>
+            <select class="select" data-bind="apto">
+              ${APTOS_POR_PISO.map((a) => `<option value="${a}" ${a === S.apto ? "selected" : ""}>${getAptNumero(S.torre, S.piso, a)}</option>`).join("")}
+            </select>
+          </div>
+        </div>
+        ${yaTieneDatos ? `
+        <div style="margin-top:14px;background:var(--amber-bg);border:1px solid var(--amber-bd);color:var(--amber-tx);font-size:12px;border-radius:12px;padding:10px 12px;line-height:1.5;">
+          ${icon("alerttriangle", 13)} Este apartamento ya tiene información registrada. Puedes continuar para actualizarla.
+        </div>` : ""}
+        <button data-action="start-form" class="btn btn-dark" style="margin-top:16px;">Continuar con Apto ${getAptNumero(S.torre, S.piso, S.apto)}</button>
+      </div>
+      <p style="font-size:11px;color:var(--muted3);text-align:center;margin-top:16px;line-height:1.5;">
+        Tus datos se usan únicamente para el plan de gestión del riesgo de Prado Verde,
+        conforme a la Ley 1523 de 2012 y la Estrategia Departamental de Respuesta a Emergencias (EDRE) de Antioquia.
+      </p>
+    </div>
+  </div>`;
+}
+
+function personaCard(p, idx) {
+  return `
+  <div class="person-card">
+    <div class="flex items-center justify-between" style="margin-bottom:10px;">
+      <button data-action="set-principal" data-key="${p.key}" class="radio-row">
+        <span class="radio-dot ${p.principal ? "on" : ""}"></span>
+        <span style="font-size:12px;font-weight:700;color:var(--forest);">${p.principal ? "Titular / contacto principal" : "Marcar como titular"}</span>
+      </button>
+      ${S.personas.length > 1 ? `<button data-action="remove-persona" data-key="${p.key}" style="color:#C0392B;padding:4px;">${icon("trash", 15)}</button>` : ""}
+    </div>
+    <div class="g2" style="margin-bottom:8px;">
+      <div style="grid-column:span 2;">
+        <label class="label">Nombres y apellidos</label>
+        <input class="input" data-bind="persona.${p.key}.nombre" value="${esc(p.nombre)}" placeholder="Ej: María Camila Restrepo Gómez" />
+      </div>
+    </div>
+    <div class="g3">
+      <div>
+        <label class="label">Edad</label>
+        <input class="input" type="number" min="0" max="120" data-bind="persona.${p.key}.edad" value="${esc(p.edad)}" placeholder="Años" />
+      </div>
+      <div>
+        <label class="label">Tipo doc.</label>
+        <select class="select" data-bind="persona.${p.key}.tipoDocumento">
+          ${["CC", "TI", "CE"].map((t) => `<option value="${t}" ${t === p.tipoDocumento ? "selected" : ""}>${t}</option>`).join("")}
+        </select>
+      </div>
+      <div>
+        <label class="label">N.° documento</label>
+        <input class="input" data-bind="persona.${p.key}.documento" value="${esc(p.documento)}" placeholder="Ej: 1035..." inputmode="numeric" />
+      </div>
+    </div>
+
+    ${p.principal ? `
+    <div class="divider" style="margin:14px 0 10px;"></div>
+    <p style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin:0 0 8px;">Datos de contacto del titular</p>
+    <div class="flex flex-col gap-2">
+      <div>
+        <label class="label">${icon("phone", 12)} Celular</label>
+        <input class="input" data-bind="persona.${p.key}.celular" value="${esc(p.celular)}" placeholder="300 123 4567" inputmode="numeric" />
+      </div>
+      <div>
+        <label class="flex items-center gap-2" style="margin-bottom:5px;cursor:pointer;">
+          <input type="checkbox" data-bind-check="persona.${p.key}.whatsappIgual" ${p.whatsappIgual ? "checked" : ""} style="width:15px;height:15px;" />
+          <span style="font-size:12px;font-weight:600;color:var(--ink);">${icon("whatsapp", 12)} El WhatsApp es el mismo número de celular</span>
+        </label>
+        ${!p.whatsappIgual ? `<input class="input" data-bind="persona.${p.key}.whatsapp" value="${esc(p.whatsapp)}" placeholder="Número de WhatsApp" inputmode="numeric" />` : ""}
+      </div>
+      <div>
+        <label class="label">${icon("mail", 12)} Correo electrónico</label>
+        <input class="input" type="email" data-bind="persona.${p.key}.correo" value="${esc(p.correo)}" placeholder="correo@ejemplo.com" />
+      </div>
+    </div>` : ""}
+  </div>`;
+}
+
+function viewForm() {
+  const id = aptoId(S.torre, S.piso, S.apto);
+  const numero = getAptNumero(S.torre, S.piso, S.apto);
+  const carItems = [
+    ["adultosMayores", "Personas mayores", "users"], ["ninos", "Niños, niñas", "baby"],
+    ["movilidadReducida", "Movilidad reducida", "accessibility"], ["dificultadNeurologica", "Dif. neurológica", "brain"],
+  ];
+  return `
+  <div class="screen">
+    <div class="header-dark">
+      <button data-action="back-select" class="flex items-center gap-1" style="color:var(--mint);font-size:13px;font-weight:600;margin:0 auto 10px;width:fit-content;">${icon("chevronleft", 15)} Cambiar apartamento</button>
+      <h1 class="font-display" style="font-size:22px;color:#fff;margin:0;">Torre ${S.torre} · Apto ${numero}</h1>
+      <p style="font-size:12px;color:var(--mint);margin:4px 0 0;">${id}</p>
+    </div>
+    <div class="wrap" style="padding-top:22px;">
+
+      <div class="card" style="margin-bottom:14px;">
+        <h3 class="section-title">${icon("users", 15)} Personas que habitan el apartamento</h3>
+        ${S.personas.map((p, i) => personaCard(p, i)).join("")}
+        <button data-action="add-persona" class="btn btn-outline" style="margin-top:4px;">${icon("userplus", 16)} Agregar otro integrante</button>
+      </div>
+
+      <div class="card" style="margin-bottom:14px;">
+        <h3 class="section-title">${icon("pawprint", 15)} Mascotas <span style="color:#C0392B;">*</span></h3>
+        <p style="font-size:12px;color:var(--muted);margin:0 0 10px;">¿El apartamento tiene mascotas?</p>
+        <div class="g2" style="margin-bottom:12px;">
+          <button data-action="set-tiene-mascotas" data-val="1" class="toggle-btn ${S.tieneMascotas === true ? "active" : ""}" style="justify-content:center;">${icon("check", 15)} Sí</button>
+          <button data-action="set-tiene-mascotas" data-val="0" class="toggle-btn ${S.tieneMascotas === false ? "active" : ""}" style="justify-content:center;">Sin mascotas</button>
+        </div>
+
+        ${S.tieneMascotas === true ? `
+        ${S.mascotas.map((m, i) => `
+          <div class="flex items-center gap-2" style="background:var(--pale);border-radius:12px;padding:8px 10px;margin-bottom:6px;">
+            ${icon("pawprint", 15)}
+            <span class="flex-1" style="font-size:13px;font-weight:600;color:var(--forest);">${m.cantidad} ${esc(m.tipo)}${m.cantidad > 1 ? "s" : ""}${m.nombre ? ` · ${esc(m.nombre)}` : ""}</span>
+            <button data-action="remove-mascota" data-idx="${i}" style="color:#C0392B;padding:4px;">${icon("trash", 14)}</button>
+          </div>`).join("")}
+        <div class="g3" style="margin-top:6px;">
+          <div style="grid-column:span 1;">
+            <label class="label">Tipo</label>
+            <select class="select" id="pet-tipo">
+              <option>Canino</option><option>Felino</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">Cantidad</label>
+            <input class="input" type="number" min="1" max="20" id="pet-cantidad" value="1" />
+          </div>
+          <div>
+            <label class="label">Nombre (opcional)</label>
+            <input class="input" id="pet-nombre" placeholder="Ej: Luna" />
+          </div>
+        </div>
+        <button data-action="add-mascota" class="btn btn-outline" style="margin-top:8px;">${icon("plus", 16)} Agregar mascota</button>
+        ` : ""}
+        ${S.tieneMascotas === false ? `<p style="font-size:13px;color:var(--muted2);margin:0;">Sin mascotas registradas para este apartamento.</p>` : ""}
+      </div>
+
+      <div class="card" style="margin-bottom:14px;">
+        <h3 class="section-title">${icon("heartpulse", 15)} Caracterización del hogar</h3>
+        <p style="font-size:12px;color:var(--muted);margin:0 0 10px;">Marca lo que aplique — ayuda a priorizar la evacuación asistida.</p>
+        <div class="g2">
+          ${carItems.map(([key, label, ic]) => `<button data-action="toggle-car" data-key="${key}" class="toggle-btn ${S.caracterizacion[key] ? "active" : ""}">${icon(ic, 15)} ${label}</button>`).join("")}
+        </div>
+        <input class="input" style="margin-top:8px;" data-bind="caracterizacion.otras" value="${esc(S.caracterizacion.otras)}" placeholder="Otras condiciones relevantes (opcional)" />
+      </div>
+
+      ${S.err ? `<p class="err" style="margin-bottom:10px;">${esc(S.err)}</p>` : ""}
+      <button data-action="submit-form" class="btn btn-dark">${icon("check", 16)} Guardar información del apartamento</button>
+    </div>
+  </div>`;
+}
+
+function viewSuccess() {
+  const numero = S.savedApartmentNumero;
+  return `
+  <div class="screen flex items-center justify-center" style="min-height:100vh;">
+    <div class="wrap" style="text-align:center;">
+      <div style="width:72px;height:72px;margin:0 auto 18px;border-radius:26px;background:var(--leaf);display:flex;align-items:center;justify-content:center;">${icon("checkcircle", 34, "")}<span style="color:#fff;"></span></div>
+      <h1 class="font-display" style="font-size:24px;color:var(--forest);margin:0 0 8px;">¡Información registrada!</h1>
+      <p style="font-size:14px;color:var(--muted);line-height:1.6;margin:0 0 24px;">
+        Gracias por actualizar los datos del <strong>apartamento ${numero}</strong>. Esta información quedó
+        disponible para la administración y la brigada de emergencia de Prado Verde.
+      </p>
+      <button data-action="restart" class="btn btn-outline">Registrar otro apartamento</button>
+    </div>
+  </div>`;
+}
+
+/* ---------------------------- Render ---------------------------- */
+
+function render() {
+  const root = document.getElementById("root");
+  if (S.loading || !S.apartments) {
+    root.innerHTML = `<div class="screen flex items-center justify-center" style="min-height:100vh;"><div class="flex flex-col items-center gap-3">${icon("home", 28)}<p style="font-size:14px;color:var(--muted);">Cargando formulario…</p></div></div>`;
+    return;
+  }
+  if (S.step === "select") root.innerHTML = viewSelect();
+  else if (S.step === "form") root.innerHTML = viewForm();
+  else root.innerHTML = viewSuccess();
+}
+
+/* ---------------------------- Eventos ---------------------------- */
+
+const root = document.getElementById("root");
+
+root.addEventListener("input", (e) => {
+  const el = e.target;
+  const bind = el.dataset.bind;
+  if (!bind) return;
+  if (bind.startsWith("persona.")) {
+    const [, key, field] = bind.split(".");
+    const p = S.personas.find((x) => x.key === key);
+    if (p) p[field] = el.value;
+  } else {
+    setDeep(S, bind, el.value);
+  }
+});
+
+root.addEventListener("change", (e) => {
+  const el = e.target;
+  if (el.dataset.bind && el.dataset.numeric) {
+    setDeep(S, el.dataset.bind, Number(el.value));
+    render();
+  } else if (el.dataset.bind && el.tagName === "SELECT") {
+    setDeep(S, el.dataset.bind, el.value);
+    render();
+  } else if (el.dataset.bindCheck) {
+    const [, key, field] = el.dataset.bindCheck.split(".");
+    const p = S.personas.find((x) => x.key === key);
+    if (p) { p[field] = el.checked; render(); }
+  }
+});
+
+root.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-action]");
+  if (!btn) return;
+  const action = btn.dataset.action;
+
+  if (action === "start-form") {
+    const id = aptoId(S.torre, S.piso, S.apto);
+    const existing = S.apartments[id];
+    if (existing && existing.residentes.length > 0) {
+      // Precarga lo ya existente para permitir actualizarlo
+      S.personas = existing.residentes.map((r) => ({
+        key: uid(), nombre: r.nombre || "", edad: r.edad || "", tipoDocumento: r.tipoDocumento || "CC",
+        documento: r.documento || "", principal: !!r.principal,
+        celular: r.principal ? (existing.telefonoPrincipal || "") : "",
+        whatsapp: r.principal ? (existing.whatsappPrincipal || "") : "",
+        whatsappIgual: !existing.whatsappPrincipal || existing.whatsappPrincipal === existing.telefonoPrincipal,
+        correo: r.principal ? (existing.correoPrincipal || "") : "",
+      }));
+      if (!S.personas.some((p) => p.principal) && S.personas.length) S.personas[0].principal = true;
+      S.mascotas = existing.mascotas.map((m) => ({ ...m }));
+      S.tieneMascotas = existing.mascotas.length > 0;
+      S.caracterizacion = { ...existing.caracterizacion };
+    } else {
+      S.personas = [nuevaPersona(true)];
+      S.mascotas = [];
+      S.tieneMascotas = null;
+      S.caracterizacion = { adultosMayores: false, ninos: false, movilidadReducida: false, dificultadNeurologica: false, otras: "" };
+    }
+    S.err = "";
+    S.step = "form";
+    render();
+  }
+
+  else if (action === "back-select") { S.step = "select"; render(); }
+
+  else if (action === "add-persona") { S.personas.push(nuevaPersona(false)); render(); }
+  else if (action === "remove-persona") {
+    const key = btn.dataset.key;
+    const wasPrincipal = S.personas.find((p) => p.key === key)?.principal;
+    S.personas = S.personas.filter((p) => p.key !== key);
+    if (wasPrincipal && S.personas.length) S.personas[0].principal = true;
+    render();
+  }
+  else if (action === "set-principal") {
+    const key = btn.dataset.key;
+    S.personas.forEach((p) => (p.principal = p.key === key));
+    render();
+  }
+
+  else if (action === "set-tiene-mascotas") {
+    S.tieneMascotas = btn.dataset.val === "1";
+    if (!S.tieneMascotas) S.mascotas = [];
+    render();
+  }
+
+  else if (action === "add-mascota") {
+    const tipo = document.getElementById("pet-tipo").value;
+    const cantidad = Math.max(1, Number(document.getElementById("pet-cantidad").value) || 1);
+    const nombre = document.getElementById("pet-nombre").value.trim();
+    S.mascotas.push({ nombre, tipo, cantidad });
+    render();
+  }
+  else if (action === "remove-mascota") { S.mascotas.splice(Number(btn.dataset.idx), 1); render(); }
+
+  else if (action === "toggle-car") {
+    S.caracterizacion[btn.dataset.key] = !S.caracterizacion[btn.dataset.key];
+    render();
+  }
+
+  else if (action === "submit-form") { submitForm(); }
+
+  else if (action === "restart") {
+    S.step = "select";
+    render();
+  }
+});
+
+async function submitForm() {
+  S.err = "";
+  const personasValidas = S.personas.filter((p) => p.nombre.trim() && p.documento.trim());
+  if (personasValidas.length === 0) {
+    S.err = "Registra al menos una persona con nombre y documento.";
+    render(); return;
+  }
+  let titular = S.personas.find((p) => p.principal);
+  if (!titular) { titular = S.personas[0]; titular.principal = true; }
+  if (!titular.nombre.trim() || !titular.documento.trim()) {
+    S.err = "El titular / contacto principal debe tener nombre y documento.";
+    render(); return;
+  }
+  if (!titular.celular.trim()) {
+    S.err = "El titular debe indicar un número de celular (se usará para el código de acceso por SMS).";
+    render(); return;
+  }
+  if (S.tieneMascotas === null) {
+    S.err = "Indica si el apartamento tiene mascotas.";
+    render(); return;
+  }
+  if (S.tieneMascotas === true && S.mascotas.length === 0) {
+    S.err = "Agrega al menos una mascota (tipo y cantidad).";
+    render(); return;
+  }
+
+  const id = aptoId(S.torre, S.piso, S.apto);
+  const apartments = await loadApartments(); // recarga por si otro residente guardó mientras tanto
+  const rec = apartments[id];
+
+  rec.residentes = personasValidas.map((p) => ({
+    nombre: p.nombre.trim(), documento: p.documento.trim(), tipoDocumento: p.tipoDocumento,
+    edad: p.edad ? Number(p.edad) : null, principal: p.principal,
+  }));
+  rec.telefonoPrincipal = titular.celular.replace(/\D/g, "");
+  rec.whatsappPrincipal = (titular.whatsappIgual ? titular.celular : titular.whatsapp).replace(/\D/g, "");
+  rec.correoPrincipal = titular.correo.trim();
+  rec.mascotas = S.mascotas.map((m) => ({ ...m }));
+  rec.caracterizacion = { ...S.caracterizacion };
+  rec.actualizadoPorResidenteEn = new Date().toISOString();
+
+  apartments[id] = rec;
+  await saveApartments(apartments);
+  S.apartments = apartments;
+  S.savedApartmentNumero = rec.numero;
+  S.step = "success";
+  render();
+}
+
+/* ---------------------------- Arranque ---------------------------- */
+
+function leerParametrosURL() {
+  const params = new URLSearchParams(window.location.search);
+  const t = Number(params.get("torre"));
+  const p = Number(params.get("piso"));
+  const a = params.get("apto");
+  if (TORRES.includes(t)) S.torre = t;
+  if (PISOS.includes(p)) S.piso = p;
+  if (APTOS_POR_PISO.includes(a)) S.apto = a;
+}
+
+(async () => {
+  leerParametrosURL();
+  S.apartments = await loadApartments();
+  S.loading = false;
+  render();
+})();
+render();
+</script>
+</body>
+</html>
