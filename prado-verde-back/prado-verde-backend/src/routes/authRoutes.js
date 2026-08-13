@@ -3,6 +3,8 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { pool } = require("../db");
 const { enviarSms } = require("../services/smsService");
+const { enviarWhatsapp } = require("../services/whatsappService");
+const { enviarEmail } = require("../services/emailService");
 const { crearCodigoOtp, verificarCodigoOtp, OTP_EXP_MINUTES } = require("../services/otpService");
 
 const router = express.Router();
@@ -69,20 +71,28 @@ router.post("/admin/login", async (req, res) => {
 });
 
 /* =====================================================================
-   LOGIN RESIDENTES — PASO 1: solicitar código por SMS
+   LOGIN RESIDENTES — PASO 1: solicitar código por SMS, WhatsApp o Email
    POST /api/auth/resident/request-code
-   body: { torre, piso, apto }   (apto: "01".."06")
+   body: { torre, piso, apto, method }   
+   - apto: "01".."06"
+   - method: "sms" | "whatsapp" | "email" (default: "sms")
 ===================================================================== */
 router.post("/resident/request-code", async (req, res) => {
   try {
-    const { torre, piso, apto } = req.body;
+    const { torre, piso, apto, method = "sms" } = req.body;
     if (!torre || !piso || !apto) {
       return res.status(400).json({ ok: false, error: "Torre, piso y apartamento son obligatorios." });
     }
 
+    // Validar método de envío
+    const metodosValidos = ["sms", "whatsapp", "email"];
+    if (!metodosValidos.includes(method)) {
+      return res.status(400).json({ ok: false, error: "Método de envío inválido. Use: sms, whatsapp o email." });
+    }
+
     const identificador = identificadorApto(torre, piso, apto);
     const { rows } = await pool.query(
-      `SELECT id, identificador, telefono_principal FROM apartamentos WHERE identificador = $1`,
+      `SELECT id, identificador, telefono_principal, whatsapp, email FROM apartamentos WHERE identificador = $1`,
       [identificador]
     );
 
@@ -91,33 +101,65 @@ router.post("/resident/request-code", async (req, res) => {
     }
 
     const apartamento = rows[0];
-    if (!apartamento.telefono_principal) {
+    
+    // Determinar el contacto según el método seleccionado
+    let contacto = null;
+    let contactoEnmascarado = null;
+    const metodosLabels = { sms: "SMS", whatsapp: "WhatsApp", email: "correo electrónico" };
+
+    if (method === "sms") {
+      contacto = apartamento.telefono_principal;
+      if (contacto) {
+        contactoEnmascarado = "••• ••• " + contacto.slice(-4);
+      }
+    } else if (method === "whatsapp") {
+      contacto = apartamento.whatsapp;
+      if (contacto) {
+        contactoEnmascarado = "••• ••• " + contacto.slice(-4);
+      }
+    } else if (method === "email") {
+      contacto = apartamento.email;
+      if (contacto && contacto.includes("@")) {
+        const [local, domain] = contacto.split("@");
+        const masked = local.length > 2 ? local[0] + "•••" + local.slice(-1) : "•••";
+        contactoEnmascarado = masked + "@" + domain;
+      }
+    }
+
+    if (!contacto) {
       return res.status(400).json({
         ok: false,
-        error: "Este apartamento no tiene un residente principal vinculado. Contacte a la administración.",
+        error: `Este apartamento no tiene ${metodosLabels[method]} registrado. Contacte a la administración.`,
       });
     }
 
     const { codigo, expiraEn } = await crearCodigoOtp({
       apartamentoId: apartamento.id,
-      telefonoDestino: apartamento.telefono_principal,
+      telefonoDestino: contacto, // Se usa el campo telefono_destino genéricamente
       ip: req.ip,
     });
 
-    await enviarSms(
-      apartamento.telefono_principal,
-      `Prado Verde: tu código de acceso es ${codigo}. Vence en ${OTP_EXP_MINUTES} minutos. No lo compartas.`
-    );
+    // Enviar código según el método seleccionado
+    const mensajeOtp = `Prado Verde: tu código de acceso es ${codigo}. Vence en ${OTP_EXP_MINUTES} minutos. No lo compartas.`;
+    
+    if (method === "sms") {
+      await enviarSms(contacto, mensajeOtp);
+    } else if (method === "whatsapp") {
+      await enviarWhatsapp(contacto, mensajeOtp);
+    } else if (method === "email") {
+      await enviarEmail(contacto, "Código de acceso - Prado Verde", mensajeOtp);
+    }
 
     const respuesta = {
       ok: true,
-      message: "Código enviado por SMS.",
-      telefonoEnmascarado: "••• ••• " + apartamento.telefono_principal.slice(-4),
+      message: `Código enviado por ${metodosLabels[method]}.`,
+      contactoEnmascarado,
+      telefonoEnmascarado: contactoEnmascarado, // Compatibilidad con frontend anterior
       expiraEn,
     };
 
     // Solo en desarrollo devolvemos el código en la respuesta, para poder
-    // probar sin una pasarela SMS real conectada. NUNCA hacer esto en producción.
+    // probar sin una pasarela real conectada. NUNCA hacer esto en producción.
     if (process.env.NODE_ENV !== "production") {
       respuesta.codigoDemo = codigo;
     }

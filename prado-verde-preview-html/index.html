@@ -115,6 +115,8 @@ function seedApartments() {
         out[id] = {
           id, torre, piso, numero: getAptNumero(torre, piso, apto),
           telefonoPrincipal: "",
+          whatsapp: "",
+          email: "",
           residentes: [],
           mascotas: [],
           caracterizacion: { adultosMayores: false, ninos: false, movilidadReducida: false, dificultadNeurologica: false, otras: "" },
@@ -129,6 +131,12 @@ function seedApartments() {
 
 function genOtp() { return String(Math.floor(100000 + Math.random() * 900000)); }
 function maskPhone(phone) { if (!phone || phone.length < 4) return "••••••"; return "••• ••• " + phone.slice(-4); }
+function maskEmail(email) {
+  if (!email || !email.includes("@")) return "•••@•••";
+  const [local, domain] = email.split("@");
+  const masked = local.length > 2 ? local[0] + "•••" + local.slice(-1) : "•••";
+  return masked + "@" + domain;
+}
 function esc(s) { return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
 /* ---------------------------- Almacenamiento persistente ---------------------------- */
@@ -195,6 +203,8 @@ const ICONS = {
   layers: '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
   home: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
   check: '<polyline points="20 6 9 17 4 12"/>',
+  whatsapp: '<path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>',
+  mail: '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
 };
 function icon(name, size, cls) {
   size = size || 18; cls = cls || "";
@@ -290,7 +300,7 @@ function viewLanding() {
           ${iconTile("users", "pale")}
           <div class="flex-1">
             <h2 class="font-display" style="font-size:17px;color:var(--forest);margin:0;">Módulo residentes</h2>
-            <p style="font-size:13px;color:var(--muted);margin:2px 0 0;">Ingreso con código enviado por SMS al residente principal del apartamento.</p>
+            <p style="font-size:13px;color:var(--muted);margin:2px 0 0;">Ingreso con código enviado por SMS, WhatsApp o correo electrónico.</p>
           </div>
           <span style="color:var(--muted4);margin-top:2px;">${icon("chevronright", 18)}</span>
         </div>
@@ -351,8 +361,55 @@ function viewAdminLogin() {
 function viewResidentLogin() {
   const id = aptoId(S.residentTorre, S.residentPiso, S.residentApto);
   const record = S.apartments[id];
+  
+  // Determinar métodos de contacto disponibles (vienen del backend/registro)
+  const hasSms = !!record.telefonoPrincipal;
+  const hasWhatsapp = !!record.whatsapp;
+  const hasEmail = !!record.email;
+  const hasAnyContact = hasSms || hasWhatsapp || hasEmail;
+  
   let body = "";
   if (S.residentStep === 1) {
+    // Construir opciones de envío disponibles
+    let contactOptions = "";
+    if (hasAnyContact) {
+      contactOptions = `
+        <div style="margin-top:16px;">
+          <p class="label" style="margin-bottom:8px;">Enviar código de acceso por:</p>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            ${hasSms ? `
+              <button data-action="resident-request-code" data-method="sms" class="toggle-btn" style="justify-content:flex-start;">
+                ${icon("phone", 16)}
+                <div class="flex-1" style="text-align:left;">
+                  <span style="font-weight:600;">SMS</span>
+                  <span style="color:var(--muted2);font-size:11px;margin-left:8px;">${maskPhone(record.telefonoPrincipal)}</span>
+                </div>
+              </button>` : ""}
+            ${hasWhatsapp ? `
+              <button data-action="resident-request-code" data-method="whatsapp" class="toggle-btn" style="justify-content:flex-start;">
+                ${icon("whatsapp", 16)}
+                <div class="flex-1" style="text-align:left;">
+                  <span style="font-weight:600;">WhatsApp</span>
+                  <span style="color:var(--muted2);font-size:11px;margin-left:8px;">${maskPhone(record.whatsapp)}</span>
+                </div>
+              </button>` : ""}
+            ${hasEmail ? `
+              <button data-action="resident-request-code" data-method="email" class="toggle-btn" style="justify-content:flex-start;">
+                ${icon("mail", 16)}
+                <div class="flex-1" style="text-align:left;">
+                  <span style="font-weight:600;">Correo electrónico</span>
+                  <span style="color:var(--muted2);font-size:11px;margin-left:8px;">${maskEmail(record.email)}</span>
+                </div>
+              </button>` : ""}
+          </div>
+        </div>`;
+    } else {
+      contactOptions = `
+        <div style="background:var(--amber-bg);border:1px solid var(--amber-bd);color:var(--amber-tx);font-size:12px;border-radius:14px;padding:12px;margin-top:16px;line-height:1.5;">
+          ${icon("alerttriangle", 13)} Este apartamento aún no tiene información de contacto registrada. Por favor contacte a la administración.
+        </div>`;
+    }
+    
     body = `
       <p style="font-size:14px;color:var(--muted);margin:4px 0 20px;">Selecciona tu apartamento para recibir un código de acceso.</p>
       <div class="g3">
@@ -376,7 +433,7 @@ function viewResidentLogin() {
         </div>
       </div>
       ${S.residentErr ? `<p class="err" style="margin-top:12px;">${esc(S.residentErr)}</p>` : ""}
-      <button data-action="resident-request-code" class="btn btn-dark" style="margin-top:20px;">${icon("messagesquare", 16)} Enviar código por SMS</button>
+      ${contactOptions}
       ${S.backendModo === false ? `<div style="background:var(--amber-bg);border:1px solid var(--amber-bd);color:var(--amber-tx);font-size:12px;border-radius:14px;padding:10px 12px;margin-top:14px;line-height:1.5;">${icon("alerttriangle", 13)} Backend no disponible en <span class="font-mono">${API_BASE_URL}</span> — usando modo demo local (el código se muestra en pantalla).</div>` : ""}
       ${S.backendModo === true ? `<div class="flex items-center gap-1" style="margin-top:14px;"><span style="color:var(--leaf);">●</span><p style="font-size:12px;color:var(--muted);margin:0;">Conectado al backend de login</p></div>` : ""}
     `;
@@ -768,8 +825,21 @@ function modalApartmentEditor() {
       <div style="padding:20px;display:flex;flex-direction:column;gap:20px;">
 
         <section>
-          <h3 class="section-title">${icon("phone", 13)} Teléfono residente principal (SMS)</h3>
-          <input class="input" data-bind="modalData.telefonoPrincipal" value="${esc(d.telefonoPrincipal)}" placeholder="3001234567" inputmode="numeric" />
+          <h3 class="section-title">${icon("messagesquare", 13)} Medios de contacto para código de acceso</h3>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div>
+              <label class="label" style="display:flex;align-items:center;gap:4px;">${icon("phone", 11)} SMS</label>
+              <input class="input" data-bind="modalData.telefonoPrincipal" value="${esc(d.telefonoPrincipal)}" placeholder="3001234567" inputmode="numeric" />
+            </div>
+            <div>
+              <label class="label" style="display:flex;align-items:center;gap:4px;">${icon("whatsapp", 11)} WhatsApp</label>
+              <input class="input" data-bind="modalData.whatsapp" value="${esc(d.whatsapp || "")}" placeholder="3001234567" inputmode="numeric" />
+            </div>
+            <div>
+              <label class="label" style="display:flex;align-items:center;gap:4px;">${icon("mail", 11)} Correo electrónico</label>
+              <input class="input" data-bind="modalData.email" value="${esc(d.email || "")}" placeholder="residente@ejemplo.com" type="email" />
+            </div>
+          </div>
         </section>
 
         <section>
@@ -968,13 +1038,15 @@ root.addEventListener("click", async (e) => {
 
   else if (action === "resident-request-code") {
     const torre = S.residentTorre, piso = S.residentPiso, apto = S.residentApto;
+    const method = btn.dataset.method || "sms"; // sms, whatsapp, email
+    const methodLabels = { sms: "SMS", whatsapp: "WhatsApp", email: "correo electrónico" };
     try {
-      const { ok, data } = await apiPost("/auth/resident/request-code", { torre, piso, apto });
+      const { ok, data } = await apiPost("/auth/resident/request-code", { torre, piso, apto, method });
       S.backendModo = true;
       if (ok) {
         S.residentDemoBanner = data.codigoDemo
-          ? `Código enviado por SMS a ${data.telefonoEnmascarado}. (Backend en modo desarrollo — código: ${data.codigoDemo})`
-          : `Código enviado por SMS a ${data.telefonoEnmascarado}.`;
+          ? `Código enviado por ${methodLabels[method]} a ${data.contactoEnmascarado || data.telefonoEnmascarado}. (Backend en modo desarrollo — código: ${data.codigoDemo})`
+          : `Código enviado por ${methodLabels[method]} a ${data.contactoEnmascarado || data.telefonoEnmascarado}.`;
         S.residentStep = 2; S.residentErr = "";
       } else {
         S.residentErr = data.error || "No se pudo enviar el código.";
@@ -984,12 +1056,25 @@ root.addEventListener("click", async (e) => {
       S.backendModo = false;
       const id = aptoId(torre, piso, apto);
       const record = S.apartments[id];
-      if (!record.telefonoPrincipal) {
-        S.residentErr = "Este apartamento aún no tiene un número de residente principal vinculado. Contacte a la administración.";
+      let contactValue = "";
+      let maskedContact = "";
+      if (method === "sms") {
+        contactValue = record.telefonoPrincipal;
+        maskedContact = maskPhone(contactValue);
+      } else if (method === "whatsapp") {
+        contactValue = record.whatsapp;
+        maskedContact = maskPhone(contactValue);
+      } else if (method === "email") {
+        contactValue = record.email;
+        maskedContact = maskEmail(contactValue);
+      }
+      
+      if (!contactValue) {
+        S.residentErr = `Este apartamento no tiene ${methodLabels[method]} registrado. Contacte a la administración.`;
       } else {
         const code = genOtp();
         S.residentOtp = code;
-        S.residentDemoBanner = `Código enviado por SMS a ${maskPhone(record.telefonoPrincipal)}. (Demo local — backend no disponible: ${code})`;
+        S.residentDemoBanner = `Código enviado por ${methodLabels[method]} a ${maskedContact}. (Demo local — backend no disponible: ${code})`;
         S.residentStep = 2; S.residentErr = "";
       }
     }
