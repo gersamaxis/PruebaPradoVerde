@@ -125,25 +125,28 @@ END $$;
 -- APARTAMENTOS DE PRUEBA CON DATOS DE CONTACTO
 -- Actualiza estos con datos reales para probar
 -- =====================================================
+
+-- Apartamento de prueba principal con datos reales
 UPDATE apartamentos 
 SET 
-    telefono_principal = '+573001234567',
-    whatsapp = '+573001234567',
-    email = 'residente.prueba@ejemplo.com'
+    telefono_principal = '+573234878604',
+    whatsapp = '+573234878604',
+    email = 'yoa155@gmail.com'
+WHERE identificador = 'T2-0606';
+
+UPDATE apartamentos 
+SET 
+    telefono_principal = '+573234878604',
+    whatsapp = '+573234878604',
+    email = 'yoa155@gmail.com'
 WHERE identificador = 'T1-0101';
 
 UPDATE apartamentos 
 SET 
-    telefono_principal = '+573009876543',
-    whatsapp = '+573009876543',
-    email = 'residente2@ejemplo.com'
+    telefono_principal = '+573234878604',
+    whatsapp = '+573234878604',
+    email = 'yoa155@gmail.com'
 WHERE identificador = 'T1-0102';
-
-UPDATE apartamentos 
-SET 
-    telefono_principal = '+573005551234',
-    email = 'solo.email@ejemplo.com'
-WHERE identificador = 'T1-0201';
 
 -- Verificar que todo se creó correctamente
 SELECT 'Administradores:' AS tabla, COUNT(*) AS total FROM administradores
